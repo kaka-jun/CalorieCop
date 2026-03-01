@@ -3,7 +3,7 @@ import SwiftUI
 struct CalorieBalanceView: View {
     let consumed: Double
     let burned: Double
-    var recommended: Double? = nil  // Optional: for showing remaining calories
+    var targetDeficit: Double? = nil  // The planned daily calorie deficit to reach weight goal
 
     var balance: Double {
         burned - consumed
@@ -13,9 +13,11 @@ struct CalorieBalanceView: View {
         balance > 0
     }
 
+    // 还能吃 = 消耗 - 目标缺口 - 已摄入
+    // This dynamically changes based on actual vs estimated burned calories
     var remaining: Double? {
-        guard let rec = recommended else { return nil }
-        return rec - consumed
+        guard let deficit = targetDeficit else { return nil }
+        return burned - deficit - consumed
     }
 
     var body: some View {
@@ -67,8 +69,8 @@ struct CalorieBalanceView: View {
                 }
             }
 
-            // Show remaining calories if recommended is provided
-            if let remaining = remaining, let rec = recommended {
+            // Show remaining calories based on target deficit
+            if let remaining = remaining, let deficit = targetDeficit {
                 Divider()
 
                 HStack {
@@ -86,7 +88,7 @@ struct CalorieBalanceView: View {
 
                     Spacer()
 
-                    Text("目标 \(Int(rec)) kcal")
+                    Text("目标缺口 \(Int(deficit)) kcal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

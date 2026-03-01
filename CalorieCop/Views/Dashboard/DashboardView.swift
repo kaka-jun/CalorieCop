@@ -82,6 +82,14 @@ struct DashboardView: View {
         return goal.recommendedDailyCalories(currentWeight: weight)
     }
 
+    // Target deficit = TDEE - recommended (the planned daily deficit to reach weight goal)
+    private var targetDeficit: Double? {
+        guard let goal = currentGoal, let weight = currentWeight else { return nil }
+        let tdee = goal.calculateTDEE(currentWeight: weight)
+        let recommended = goal.recommendedDailyCalories(currentWeight: weight)
+        return tdee - recommended
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -142,9 +150,9 @@ struct DashboardView: View {
             CalorieBalanceView(
                 consumed: totalCaloriesConsumed,
                 burned: totalCaloriesBurned,
-                recommended: recommendedCalories
+                targetDeficit: targetDeficit
             )
-            .id(goalRefreshTrigger)  // Force refresh when goal changes
+            .id("\(goalRefreshTrigger)-\(useAppleWatchData)")  // Force refresh when goal or toggle changes
 
             if isShowingEstimated {
                 Text("基于身体数据估算消耗")
