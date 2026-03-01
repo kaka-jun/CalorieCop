@@ -185,6 +185,10 @@ struct AIAdvisorView: View {
             } message: {
                 Text("确定要删除所有聊天记录吗？此操作无法撤销。")
             }
+            .onTapGesture {
+                // Dismiss keyboard when tapping outside text field
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
         }
     }
 
@@ -201,20 +205,27 @@ struct AIAdvisorView: View {
         // Save user message
         let userMessage = ChatMessage(role: "user", content: question)
         modelContext.insert(userMessage)
+        try? modelContext.save()
 
         isLoading = true
 
         do {
             let response = try await askAI(question: question)
-            // Save assistant message
-            let assistantMessage = ChatMessage(role: "assistant", content: response)
-            modelContext.insert(assistantMessage)
+            // Save assistant message on main thread
+            await MainActor.run {
+                let assistantMessage = ChatMessage(role: "assistant", content: response)
+                modelContext.insert(assistantMessage)
+                try? modelContext.save()
+                isLoading = false
+            }
         } catch {
-            let errorMessage = ChatMessage(role: "assistant", content: "抱歉，出现了错误：\(error.localizedDescription)")
-            modelContext.insert(errorMessage)
+            await MainActor.run {
+                let errorMessage = ChatMessage(role: "assistant", content: "抱歉，出现了错误：\(error.localizedDescription)")
+                modelContext.insert(errorMessage)
+                try? modelContext.save()
+                isLoading = false
+            }
         }
-
-        isLoading = false
     }
 
     private func askAI(question: String) async throws -> String {
@@ -233,19 +244,34 @@ struct AIAdvisorView: View {
 - 如果用户问多久能达到目标，请根据当前热量缺口和目标体重差距计算（每减1kg约需消耗7700kcal）
 - 回答要简洁友好，使用中文
 - 如果数据不足，请指出需要哪些信息
+
+格式要求（重要）：
+- 不要使用表格
+- 不要使用标题（#、##、###）
+- 可以使用 **粗体** 强调重点
+- 使用 • 或数字列表来组织内容
+- 保持简洁，每次回复不超过200字
 """
 
         var messages: [[String: String]] = [
             ["role": "system", "content": systemPrompt]
         ]
 
-        // Add conversation history from persisted messages
+        // Add conversation history from persisted messages (excluding the current question which was just added)
         for msg in chatMessages {
+            // Skip if this is the current question we just inserted (it might or might not be in the query results yet)
+            if msg.role == "user" && msg.content == question {
+                continue
+            }
             messages.append(["role": msg.role, "content": msg.content])
         }
 
+        // Always add the current question explicitly
+        messages.append(["role": "user", "content": question])
+
+        // Use highspeed model for faster response
         let requestBody: [String: Any] = [
-            "model": "MiniMax-Text-01",
+            "model": "MiniMax-M2.5-highspeed",
             "messages": messages
         ]
 
@@ -255,20 +281,55 @@ struct AIAdvisorView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
 
-        struct Response: Decodable {
-            let choices: [Choice]
+        // Log response for debugging
+        let rawString = String(data: data, encoding: .utf8) ?? ""
+        if let httpResponse = response as? HTTPURLResponse {
+            DebugLogger.shared.logAPIResponse(statusCode: httpResponse.statusCode, body: rawString)
+
+            // Check HTTP status
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw AIServiceError.parsingError("HTTP错误 \(httpResponse.statusCode): \(rawString.prefix(200))")
+            }
+        }
+
+        struct APIResponse: Decodable {
+            let choices: [Choice]?
+            let error: APIError?
+
             struct Choice: Decodable {
                 let message: Message
                 struct Message: Decodable {
                     let content: String
                 }
             }
+
+            struct APIError: Decodable {
+                let message: String?
+                let code: String?
+            }
         }
 
-        let response = try JSONDecoder().decode(Response.self, from: data)
-        return response.choices.first?.message.content ?? "无法获取回复"
+        let apiResponse: APIResponse
+        do {
+            apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
+        } catch {
+            DebugLogger.shared.logError(error, context: "AI Advisor JSON decode")
+            throw AIServiceError.parsingError("JSON解析失败: \(rawString.prefix(300))")
+        }
+
+        // Check for API error
+        if let error = apiResponse.error {
+            throw AIServiceError.parsingError("API错误: \(error.message ?? error.code ?? "未知")")
+        }
+
+        // Check for empty choices
+        guard let choices = apiResponse.choices, !choices.isEmpty else {
+            throw AIServiceError.parsingError("API返回为空: \(rawString.prefix(300))")
+        }
+
+        return choices.first?.message.content ?? "无法获取回复"
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -303,8 +364,9 @@ struct AIMessageBubble: View {
     let content: String
 
     var body: some View {
-        HStack {
-            Text(content)
+        HStack(alignment: .top) {
+            Text(.init(content))  // This enables markdown rendering
+                .textSelection(.enabled)
                 .padding(12)
                 .background(Color(.systemGray5))
                 .clipShape(RoundedRectangle(cornerRadius: 16))

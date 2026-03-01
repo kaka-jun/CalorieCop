@@ -58,9 +58,9 @@ enum Secrets {
 ```
 
 ### MiniMax API
-- Text model: `MiniMax-Text-01`
-- Vision model: `MiniMax-VL-01`
+- Model: `MiniMax-M2.5` (supports both text and vision/multimodal)
 - Endpoint: `https://api.minimaxi.chat/v1/text/chatcompletion_v2`
+- Note: `MiniMax-VL-01` is open-source only, not available via API
 
 ### Food Parsing
 AI returns JSON with: `food_name`, `grams`, `calories`, `protein`, `carbohydrates`, `fat`, `confidence`, `notes`, `days_ago`

@@ -3,8 +3,9 @@ import UIKit
 
 final class MiniMaxService: AIServiceProtocol {
     private let endpoint = URL(string: "https://api.minimaxi.chat/v1/text/chatcompletion_v2")!
-    private let model = "MiniMax-Text-01"
-    // MiniMax-M2.5 has native multimodal (vision) capabilities
+    // MiniMax-M2.5 is the latest model with best performance
+    private let model = "MiniMax-M2.5"
+    // Same model supports both text and vision (multimodal)
     private let visionModel = "MiniMax-M2.5"
     private let logger = DebugLogger.shared
 
