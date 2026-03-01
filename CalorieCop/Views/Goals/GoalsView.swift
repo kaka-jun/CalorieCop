@@ -130,7 +130,7 @@ struct GoalsView: View {
                 }
             }
             .sheet(isPresented: $showingGoalSettings) {
-                GoalSettingView()
+                GoalSettingView(passedCurrentWeight: currentWeight)
             }
             .sheet(isPresented: $showingWeightEntry) {
                 ManualWeightEntryView()

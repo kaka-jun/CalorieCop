@@ -6,6 +6,14 @@ struct GoalSettingView: View {
     @Environment(\.dismiss) private var dismiss
     @Query private var goals: [UserGoal]
     @Query private var settings: [UserSettings]
+    @Query(sort: \WeightEntry.date, order: .reverse) private var weightEntries: [WeightEntry]
+
+    // Current weight passed from parent or from weight entries
+    var passedCurrentWeight: Double?
+
+    private var currentWeight: Double? {
+        passedCurrentWeight ?? weightEntries.first?.weight
+    }
 
     @State private var targetWeight: Double = 65  // Input value in user's preferred unit
     @State private var height: Double = 170
@@ -146,10 +154,11 @@ struct GoalSettingView: View {
                 targetDate: hasTargetDate ? targetDate : nil
             )
 
-            // Assume current weight is target + 5kg for preview
-            let estimatedCurrentWeightKg = targetWeightInKg + 5
-            let recommended = goal.recommendedDailyCalories(currentWeight: estimatedCurrentWeightKg)
-            let tdee = goal.calculateTDEE(currentWeight: estimatedCurrentWeightKg)
+            // Use actual current weight if available, otherwise estimate
+            let weightForCalc = currentWeight ?? (targetWeightInKg + 5)
+            let isEstimated = currentWeight == nil
+            let recommended = goal.recommendedDailyCalories(currentWeight: weightForCalc)
+            let tdee = goal.calculateTDEE(currentWeight: weightForCalc)
 
             HStack {
                 VStack {
@@ -187,9 +196,15 @@ struct GoalSettingView: View {
                 }
             }
 
-            Text("* 基于预估当前体重 \(weightUnit.format(estimatedCurrentWeightKg)) 计算")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            if isEstimated {
+                Text("* 基于预估当前体重 \(weightUnit.format(weightForCalc)) 计算")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("* 基于当前体重 \(weightUnit.format(weightForCalc)) 计算")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 
@@ -251,6 +266,6 @@ struct GoalSettingView: View {
 }
 
 #Preview {
-    GoalSettingView()
-        .modelContainer(for: [UserGoal.self, FoodEntry.self, UserSettings.self], inMemory: true)
+    GoalSettingView(passedCurrentWeight: 70.0)
+        .modelContainer(for: [UserGoal.self, FoodEntry.self, UserSettings.self, WeightEntry.self], inMemory: true)
 }
