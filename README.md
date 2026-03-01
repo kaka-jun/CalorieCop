@@ -1,6 +1,12 @@
-# CalorieCop
+<p align="center">
+  <img src="docs/AppIcon.png" width="120" height="120" alt="CalorieCop Icon">
+</p>
 
-A personal health management iOS app for weight loss tracking with natural language food input and Apple Watch activity integration.
+<h1 align="center">CalorieCop</h1>
+
+<p align="center">
+  A personal health management iOS app for weight loss tracking with natural language food input and Apple Watch activity integration.
+</p>
 
 ## Features
 
@@ -93,8 +99,9 @@ CalorieCop/
 ### MiniMax API
 
 The app uses MiniMax's ChatCompletion API:
-- Endpoint: `https://api.minimax.chat/v1/text/chatcompletion_v2`
-- Model: `abab6.5s`
+- Endpoint: `https://api.minimaxi.chat/v1/text/chatcompletion_v2`
+- Model: `MiniMax-M2.5` (multimodal, supports text & image)
+- AI Advisor: `MiniMax-M2.5-highspeed` (faster responses)
 - Response format: JSON object
 
 ## Privacy
