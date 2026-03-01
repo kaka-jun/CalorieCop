@@ -5,12 +5,22 @@ struct ContentView: View {
         TabView {
             DashboardView()
                 .tabItem {
-                    Label("概览", systemImage: "chart.pie.fill")
+                    Label("今日", systemImage: "chart.pie.fill")
                 }
 
             FoodInputView()
                 .tabItem {
                     Label("记录", systemImage: "plus.circle.fill")
+                }
+
+            GoalsView()
+                .tabItem {
+                    Label("目标", systemImage: "target")
+                }
+
+            HistoryView()
+                .tabItem {
+                    Label("历史", systemImage: "calendar")
                 }
         }
     }
@@ -18,5 +28,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: FoodEntry.self, inMemory: true)
+        .modelContainer(for: [FoodEntry.self, UserGoal.self], inMemory: true)
 }

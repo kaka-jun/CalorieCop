@@ -14,7 +14,8 @@ final class FoodEntry {
     var createdAt: Date
 
     init(rawInput: String, foodName: String, grams: Double,
-         calories: Double, protein: Double, carbohydrates: Double, fat: Double) {
+         calories: Double, protein: Double, carbohydrates: Double, fat: Double,
+         date: Date = Date()) {
         self.id = UUID()
         self.rawInput = rawInput
         self.foodName = foodName
@@ -23,7 +24,7 @@ final class FoodEntry {
         self.protein = protein
         self.carbohydrates = carbohydrates
         self.fat = fat
-        self.createdAt = Date()
+        self.createdAt = date
     }
 
     convenience init(rawInput: String, nutrition: NutritionInfo) {
@@ -34,7 +35,8 @@ final class FoodEntry {
             calories: nutrition.calories,
             protein: nutrition.protein,
             carbohydrates: nutrition.carbohydrates,
-            fat: nutrition.fat
+            fat: nutrition.fat,
+            date: nutrition.entryDate
         )
     }
 }

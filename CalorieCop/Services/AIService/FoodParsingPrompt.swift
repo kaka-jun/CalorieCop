@@ -1,7 +1,7 @@
 import Foundation
 
 enum FoodParsingPrompt {
-    static let systemPrompt = """
+    static let basePrompt = """
 你是一个专业的营养分析师。用户会用自然语言描述他们吃的食物，请解析并返回JSON格式的营养信息。
 
 规则：
@@ -9,6 +9,12 @@ enum FoodParsingPrompt {
 2. 营养数据基于中国常见食物数据库
 3. 如果食物描述模糊，选择最常见的理解方式
 4. 所有数值保留1位小数
+5. 注意识别时间描述：
+   - "昨天"、"昨晚" = days_ago: 1
+   - "前天" = days_ago: 2
+   - "今天"、"刚才"、"刚刚" 或没有时间描述 = days_ago: 0
+   - "上周X" = 计算距今天数
+   - "X天前" = days_ago: X
 
 必须返回以下JSON格式：
 {
@@ -19,7 +25,31 @@ enum FoodParsingPrompt {
   "carbohydrates": 碳水化合物克数,
   "fat": 脂肪克数,
   "confidence": "high/medium/low",
-  "notes": "可选备注，如份量估算说明"
+  "notes": "可选备注，如份量估算说明",
+  "days_ago": 距今天数（0=今天，1=昨天，以此类推）
 }
 """
+
+    /// Generate system prompt with user's food preferences
+    static func systemPrompt(with preferences: [FoodPreference] = []) -> String {
+        var prompt = basePrompt
+
+        if !preferences.isEmpty {
+            prompt += "\n\n【用户的食物习惯】\n"
+            prompt += "以下是用户的个人食物偏好设定，当用户提到这些关键词时，如果没有特别说明，请按照用户的习惯来解析：\n"
+
+            for pref in preferences {
+                prompt += "- \"\(pref.keyword)\" → \(pref.defaultDescription)\n"
+            }
+
+            prompt += "\n注意：如果用户明确指定了不同的份量或描述，以用户当前输入为准。"
+        }
+
+        return prompt
+    }
+
+    // Keep backward compatibility
+    static var systemPrompt: String {
+        basePrompt
+    }
 }

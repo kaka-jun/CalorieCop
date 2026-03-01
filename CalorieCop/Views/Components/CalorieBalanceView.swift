@@ -3,6 +3,7 @@ import SwiftUI
 struct CalorieBalanceView: View {
     let consumed: Double
     let burned: Double
+    var recommended: Double? = nil  // Optional: for showing remaining calories
 
     var balance: Double {
         burned - consumed
@@ -10,6 +11,11 @@ struct CalorieBalanceView: View {
 
     var isDeficit: Bool {
         balance > 0
+    }
+
+    var remaining: Double? {
+        guard let rec = recommended else { return nil }
+        return rec - consumed
     }
 
     var body: some View {
@@ -56,6 +62,31 @@ struct CalorieBalanceView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(isDeficit ? .green : .red)
                     Text(isDeficit ? "缺口" : "盈余")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Show remaining calories if recommended is provided
+            if let remaining = remaining, let rec = recommended {
+                Divider()
+
+                HStack {
+                    if remaining > 0 {
+                        Label("还可吃 \(Int(remaining)) kcal", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                    } else {
+                        Label("已超出 \(Int(-remaining)) kcal", systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.red)
+                    }
+
+                    Spacer()
+
+                    Text("目标 \(Int(rec)) kcal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

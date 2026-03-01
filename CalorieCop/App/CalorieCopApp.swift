@@ -6,6 +6,11 @@ struct CalorieCopApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             FoodEntry.self,
+            UserGoal.self,
+            WeightEntry.self,
+            UserSettings.self,
+            ChatMessage.self,
+            FoodPreference.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

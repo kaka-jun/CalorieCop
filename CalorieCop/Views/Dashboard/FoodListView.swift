@@ -6,6 +6,9 @@ struct FoodListView: View {
     @Query(sort: \FoodEntry.createdAt, order: .reverse)
     private var allEntries: [FoodEntry]
 
+    @State private var entryToDelete: FoodEntry?
+    @State private var showingDeleteConfirmation = false
+
     private var todayEntries: [FoodEntry] {
         let startOfDay = Calendar.current.startOfDay(for: Date())
         return allEntries.filter { $0.createdAt >= startOfDay }
@@ -17,6 +20,21 @@ struct FoodListView: View {
                 emptyState
             } else {
                 foodList
+            }
+        }
+        .alert("确认删除", isPresented: $showingDeleteConfirmation) {
+            Button("取消", role: .cancel) {
+                entryToDelete = nil
+            }
+            Button("删除", role: .destructive) {
+                if let entry = entryToDelete {
+                    modelContext.delete(entry)
+                    entryToDelete = nil
+                }
+            }
+        } message: {
+            if let entry = entryToDelete {
+                Text("确定要删除「\(entry.foodName)」吗？")
             }
         }
     }
@@ -41,17 +59,25 @@ struct FoodListView: View {
         List {
             ForEach(todayEntries) { entry in
                 FoodEntryRow(entry: entry)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            entryToDelete = entry
+                            showingDeleteConfirmation = true
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            entryToDelete = entry
+                            showingDeleteConfirmation = true
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    }
             }
-            .onDelete(perform: deleteEntries)
         }
         .listStyle(.plain)
-    }
-
-    private func deleteEntries(at offsets: IndexSet) {
-        let entriesToDelete = offsets.map { todayEntries[$0] }
-        for entry in entriesToDelete {
-            modelContext.delete(entry)
-        }
     }
 }
 
