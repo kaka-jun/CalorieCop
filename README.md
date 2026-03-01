@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/AppIcon.png" width="120" height="120" alt="CalorieCop Icon">
+  <img src="docs/AppIcon.png" width="200" height="200" alt="CalorieCop Icon">
 </p>
 
 <h1 align="center">CalorieCop</h1>
