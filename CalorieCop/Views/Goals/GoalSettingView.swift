@@ -66,10 +66,27 @@ struct GoalSettingView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Toggle("设置目标日期", isOn: $hasTargetDate)
-
                     if hasTargetDate {
                         DatePicker("目标日期", selection: $targetDate, in: Date()..., displayedComponents: .date)
+
+                        Button(role: .destructive) {
+                            hasTargetDate = false
+                        } label: {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                Text("清除目标日期")
+                            }
+                        }
+                    } else {
+                        Button {
+                            hasTargetDate = true
+                            targetDate = Date().addingTimeInterval(86400 * 90)  // Default to 90 days from now
+                        } label: {
+                            HStack {
+                                Image(systemName: "calendar.badge.plus")
+                                Text("设置目标日期")
+                            }
+                        }
                     }
                 }
 

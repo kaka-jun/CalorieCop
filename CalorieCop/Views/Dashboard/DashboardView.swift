@@ -12,6 +12,7 @@ struct DashboardView: View {
     @Query(sort: \WeightEntry.date, order: .reverse) private var manualWeightEntries: [WeightEntry]
 
     @State private var useAppleWatchData = true  // Toggle for data source
+    @State private var goalRefreshTrigger = UUID()  // Force refresh when goal changes
 
     private var currentGoal: UserGoal? { goals.first }
 
@@ -125,6 +126,14 @@ struct DashboardView: View {
             .refreshable {
                 await healthKitService.fetchTodayCaloriesBurned()
             }
+            .onChange(of: currentGoal?.targetDate) {
+                // Force refresh when target date changes
+                goalRefreshTrigger = UUID()
+            }
+            .onChange(of: currentGoal?.updatedAt) {
+                // Force refresh when goal is updated
+                goalRefreshTrigger = UUID()
+            }
         }
     }
 
@@ -135,6 +144,7 @@ struct DashboardView: View {
                 burned: totalCaloriesBurned,
                 recommended: recommendedCalories
             )
+            .id(goalRefreshTrigger)  // Force refresh when goal changes
 
             if isShowingEstimated {
                 Text("基于身体数据估算消耗")
