@@ -1,0 +1,492 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1000001238ABCDE /* CalorieCopApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100001238ABCDE /* CalorieCopApp.swift */; };
+		A1000002238ABCDE /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100002238ABCDE /* ContentView.swift */; };
+		A1000003238ABCDE /* FoodEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100003238ABCDE /* FoodEntry.swift */; };
+		A1000004238ABCDE /* NutritionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100004238ABCDE /* NutritionInfo.swift */; };
+		A1000005238ABCDE /* AIServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100005238ABCDE /* AIServiceProtocol.swift */; };
+		A1000006238ABCDE /* MiniMaxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100006238ABCDE /* MiniMaxService.swift */; };
+		A1000007238ABCDE /* FoodParsingPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100007238ABCDE /* FoodParsingPrompt.swift */; };
+		A1000008238ABCDE /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100008238ABCDE /* HealthKitService.swift */; };
+		A1000009238ABCDE /* APIKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100009238ABCDE /* APIKeyManager.swift */; };
+		A100000A238ABCDE /* FoodInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000A238ABCDE /* FoodInputView.swift */; };
+		A100000B238ABCDE /* FoodConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000B238ABCDE /* FoodConfirmationView.swift */; };
+		A100000C238ABCDE /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000C238ABCDE /* DashboardView.swift */; };
+		A100000D238ABCDE /* FoodListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000D238ABCDE /* FoodListView.swift */; };
+		A100000E238ABCDE /* NutritionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000E238ABCDE /* NutritionCard.swift */; };
+		A100000F238ABCDE /* CalorieBalanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000F238ABCDE /* CalorieBalanceView.swift */; };
+		A1000010238ABCDE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100010238ABCDE /* Extensions.swift */; };
+		A1000011238ABCDE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1100011238ABCDE /* Assets.xcassets */; };
+		A1000012238ABCDE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1100012238ABCDE /* HealthKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1100001238ABCDE /* CalorieCopApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieCopApp.swift; sourceTree = "<group>"; };
+		A1100002238ABCDE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1100003238ABCDE /* FoodEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntry.swift; sourceTree = "<group>"; };
+		A1100004238ABCDE /* NutritionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionInfo.swift; sourceTree = "<group>"; };
+		A1100005238ABCDE /* AIServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceProtocol.swift; sourceTree = "<group>"; };
+		A1100006238ABCDE /* MiniMaxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxService.swift; sourceTree = "<group>"; };
+		A1100007238ABCDE /* FoodParsingPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodParsingPrompt.swift; sourceTree = "<group>"; };
+		A1100008238ABCDE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		A1100009238ABCDE /* APIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManager.swift; sourceTree = "<group>"; };
+		A110000A238ABCDE /* FoodInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodInputView.swift; sourceTree = "<group>"; };
+		A110000B238ABCDE /* FoodConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodConfirmationView.swift; sourceTree = "<group>"; };
+		A110000C238ABCDE /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		A110000D238ABCDE /* FoodListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodListView.swift; sourceTree = "<group>"; };
+		A110000E238ABCDE /* NutritionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionCard.swift; sourceTree = "<group>"; };
+		A110000F238ABCDE /* CalorieBalanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieBalanceView.swift; sourceTree = "<group>"; };
+		A1100010238ABCDE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		A1100011238ABCDE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1100012238ABCDE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		A1100020238ABCDE /* CalorieCop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CalorieCop.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1100021238ABCDE /* CalorieCop.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalorieCop.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1200001238ABCDE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000012238ABCDE /* HealthKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1300000238ABCDE = {
+			isa = PBXGroup;
+			children = (
+				A1300001238ABCDE /* CalorieCop */,
+				A1300002238ABCDE /* Frameworks */,
+				A1300003238ABCDE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1300001238ABCDE /* CalorieCop */ = {
+			isa = PBXGroup;
+			children = (
+				A1100021238ABCDE /* CalorieCop.entitlements */,
+				A1300010238ABCDE /* App */,
+				A1300011238ABCDE /* Models */,
+				A1300012238ABCDE /* Services */,
+				A1300013238ABCDE /* Views */,
+				A1300014238ABCDE /* Utilities */,
+				A1300015238ABCDE /* Resources */,
+			);
+			path = CalorieCop;
+			sourceTree = "<group>";
+		};
+		A1300002238ABCDE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1100012238ABCDE /* HealthKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A1300003238ABCDE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1100020238ABCDE /* CalorieCop.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1300010238ABCDE /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1100001238ABCDE /* CalorieCopApp.swift */,
+				A1100002238ABCDE /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A1300011238ABCDE /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1100003238ABCDE /* FoodEntry.swift */,
+				A1100004238ABCDE /* NutritionInfo.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1300012238ABCDE /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A1300016238ABCDE /* AIService */,
+				A1100008238ABCDE /* HealthKitService.swift */,
+				A1100009238ABCDE /* APIKeyManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A1300013238ABCDE /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A1300017238ABCDE /* FoodInput */,
+				A1300018238ABCDE /* Dashboard */,
+				A1300019238ABCDE /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A1300014238ABCDE /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				A1100010238ABCDE /* Extensions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		A1300015238ABCDE /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A1100011238ABCDE /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A1300016238ABCDE /* AIService */ = {
+			isa = PBXGroup;
+			children = (
+				A1100005238ABCDE /* AIServiceProtocol.swift */,
+				A1100006238ABCDE /* MiniMaxService.swift */,
+				A1100007238ABCDE /* FoodParsingPrompt.swift */,
+			);
+			path = AIService;
+			sourceTree = "<group>";
+		};
+		A1300017238ABCDE /* FoodInput */ = {
+			isa = PBXGroup;
+			children = (
+				A110000A238ABCDE /* FoodInputView.swift */,
+				A110000B238ABCDE /* FoodConfirmationView.swift */,
+			);
+			path = FoodInput;
+			sourceTree = "<group>";
+		};
+		A1300018238ABCDE /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				A110000C238ABCDE /* DashboardView.swift */,
+				A110000D238ABCDE /* FoodListView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		A1300019238ABCDE /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A110000E238ABCDE /* NutritionCard.swift */,
+				A110000F238ABCDE /* CalorieBalanceView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1400001238ABCDE /* CalorieCop */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1500002238ABCDE /* Build configuration list for PBXNativeTarget "CalorieCop" */;
+			buildPhases = (
+				A1400002238ABCDE /* Sources */,
+				A1200001238ABCDE /* Frameworks */,
+				A1400003238ABCDE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CalorieCop;
+			productName = CalorieCop;
+			productReference = A1100020238ABCDE /* CalorieCop.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1600001238ABCDE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A1400001238ABCDE = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A1500001238ABCDE /* Build configuration list for PBXProject "CalorieCop" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A1300000238ABCDE;
+			productRefGroup = A1300003238ABCDE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1400001238ABCDE /* CalorieCop */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1400003238ABCDE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000011238ABCDE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1400002238ABCDE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000001238ABCDE /* CalorieCopApp.swift in Sources */,
+				A1000002238ABCDE /* ContentView.swift in Sources */,
+				A1000003238ABCDE /* FoodEntry.swift in Sources */,
+				A1000004238ABCDE /* NutritionInfo.swift in Sources */,
+				A1000005238ABCDE /* AIServiceProtocol.swift in Sources */,
+				A1000006238ABCDE /* MiniMaxService.swift in Sources */,
+				A1000007238ABCDE /* FoodParsingPrompt.swift in Sources */,
+				A1000008238ABCDE /* HealthKitService.swift in Sources */,
+				A1000009238ABCDE /* APIKeyManager.swift in Sources */,
+				A100000A238ABCDE /* FoodInputView.swift in Sources */,
+				A100000B238ABCDE /* FoodConfirmationView.swift in Sources */,
+				A100000C238ABCDE /* DashboardView.swift in Sources */,
+				A100000D238ABCDE /* FoodListView.swift in Sources */,
+				A100000E238ABCDE /* NutritionCard.swift in Sources */,
+				A100000F238ABCDE /* CalorieBalanceView.swift in Sources */,
+				A1000010238ABCDE /* Extensions.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1700001238ABCDE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A1700002238ABCDE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A1700003238ABCDE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CalorieCop/CalorieCop.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "CalorieCop需要读取您的健康数据来追踪卡路里消耗。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CalorieCop需要访问您的健康数据。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CalorieCop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1700004238ABCDE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CalorieCop/CalorieCop.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "CalorieCop需要读取您的健康数据来追踪卡路里消耗。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CalorieCop需要访问您的健康数据。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.CalorieCop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1500001238ABCDE /* Build configuration list for PBXProject "CalorieCop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1700001238ABCDE /* Debug */,
+				A1700002238ABCDE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1500002238ABCDE /* Build configuration list for PBXNativeTarget "CalorieCop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1700003238ABCDE /* Debug */,
+				A1700004238ABCDE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1600001238ABCDE /* Project object */;
+}
