@@ -37,4 +37,43 @@ struct NutritionInfo: Codable {
         self.notes = notes
         self.daysAgo = daysAgo
     }
+
+    // Custom decoder to handle flexible AI responses
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Food name - required
+        foodName = try container.decode(String.self, forKey: .foodName)
+
+        // Decode numbers flexibly (handle string or number)
+        grams = try Self.decodeFlexibleDouble(from: container, forKey: .grams) ?? 100
+        calories = try Self.decodeFlexibleDouble(from: container, forKey: .calories) ?? 0
+        protein = try Self.decodeFlexibleDouble(from: container, forKey: .protein) ?? 0
+        carbohydrates = try Self.decodeFlexibleDouble(from: container, forKey: .carbohydrates) ?? 0
+        fat = try Self.decodeFlexibleDouble(from: container, forKey: .fat) ?? 0
+
+        // Confidence with default
+        confidence = (try? container.decode(String.self, forKey: .confidence)) ?? "medium"
+
+        // Optional fields
+        notes = try? container.decode(String.self, forKey: .notes)
+        daysAgo = try? container.decode(Int.self, forKey: .daysAgo)
+    }
+
+    // Helper to decode Double from either number or string
+    private static func decodeFlexibleDouble(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
+        // Try as Double first
+        if let value = try? container.decode(Double.self, forKey: key) {
+            return value
+        }
+        // Try as Int
+        if let value = try? container.decode(Int.self, forKey: key) {
+            return Double(value)
+        }
+        // Try as String
+        if let stringValue = try? container.decode(String.self, forKey: key) {
+            return Double(stringValue)
+        }
+        return nil
+    }
 }

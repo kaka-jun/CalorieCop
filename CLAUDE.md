@@ -81,11 +81,22 @@ For physical device: configure Signing & Capabilities with your Apple ID.
 - UI: Chinese (Simplified)
 - Code: English
 
+## Development Rules
+
+**Always verify builds before asking user to test:**
+```bash
+xcodebuild -scheme CalorieCop -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build 2>&1 | grep -E "(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)"
+```
+
+- Run this command after making code changes
+- Fix any errors or warnings before telling user to build/run
+- Only ask user to test after BUILD SUCCEEDED with no warnings
+
 ## Common Commands
 
 ```bash
-# Build
-xcodebuild -scheme CalorieCop -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+# Build (with error/warning filter)
+xcodebuild -scheme CalorieCop -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build 2>&1 | grep -E "(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)"
 
 # Open project
 open CalorieCop.xcodeproj

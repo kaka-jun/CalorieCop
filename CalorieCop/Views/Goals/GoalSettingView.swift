@@ -182,7 +182,9 @@ struct GoalSettingView: View {
 
         if let goal = currentGoal {
             // Convert stored kg value to user's preferred unit
-            targetWeight = weightUnit.fromKg(goal.targetWeight)
+            // Round to 1 decimal to avoid floating point precision issues (e.g., 124.9999 → 125.0)
+            let convertedWeight = weightUnit.fromKg(goal.targetWeight)
+            targetWeight = (convertedWeight * 10).rounded() / 10
             height = goal.height
             age = goal.age
             gender = goal.gender
@@ -198,25 +200,35 @@ struct GoalSettingView: View {
     }
 
     private func saveGoal() {
-        // Remove existing goal
+        // Convert from user's unit to kg for storage
+        // Round the input first to avoid precision issues
+        let roundedTargetWeight = (targetWeight * 10).rounded() / 10
+        let targetWeightInKg = weightUnit.toKg(roundedTargetWeight)
+
         if let existing = currentGoal {
-            modelContext.delete(existing)
+            // Update existing goal in-place for better SwiftData observation
+            existing.targetWeight = targetWeightInKg
+            existing.height = height
+            existing.age = age
+            existing.gender = gender
+            existing.activityLevel = activityLevel
+            existing.targetDate = hasTargetDate ? targetDate : nil
+            existing.updatedAt = Date()
+        } else {
+            // Create new goal
+            let goal = UserGoal(
+                targetWeight: targetWeightInKg,
+                height: height,
+                age: age,
+                gender: gender,
+                activityLevel: activityLevel,
+                targetDate: hasTargetDate ? targetDate : nil
+            )
+            modelContext.insert(goal)
         }
 
-        // Convert from user's unit to kg for storage
-        let targetWeightInKg = weightUnit.toKg(targetWeight)
-
-        // Create new goal
-        let goal = UserGoal(
-            targetWeight: targetWeightInKg,
-            height: height,
-            age: age,
-            gender: gender,
-            activityLevel: activityLevel,
-            targetDate: hasTargetDate ? targetDate : nil
-        )
-
-        modelContext.insert(goal)
+        // Explicitly save to ensure changes are persisted
+        try? modelContext.save()
         dismiss()
     }
 }

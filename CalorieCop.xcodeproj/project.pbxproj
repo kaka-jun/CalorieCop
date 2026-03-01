@@ -23,6 +23,8 @@
 		A100000E238ABCDE /* NutritionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000E238ABCDE /* NutritionCard.swift */; };
 		A100000F238ABCDE /* CalorieBalanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110000F238ABCDE /* CalorieBalanceView.swift */; };
 		A1000010238ABCDE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100010238ABCDE /* Extensions.swift */; };
+		A1000011238ABCDE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1100011238ABCDE /* Assets.xcassets */; };
+		A1000012238ABCDE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1100012238ABCDE /* HealthKit.framework */; };
 		A1000014238ABCDE /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100014238ABCDE /* HistoryView.swift */; };
 		A1000015238ABCDE /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100015238ABCDE /* DayDetailView.swift */; };
 		A1000016238ABCDE /* AIAdvisorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100016238ABCDE /* AIAdvisorView.swift */; };
@@ -36,8 +38,7 @@
 		A100001E238ABCDE /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110001E238ABCDE /* UserSettings.swift */; };
 		A100001F238ABCDE /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110001F238ABCDE /* ChatMessage.swift */; };
 		A1000022238ABCDE /* FoodPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100022238ABCDE /* FoodPreference.swift */; };
-		A1000011238ABCDE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1100011238ABCDE /* Assets.xcassets */; };
-		A1000012238ABCDE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1100012238ABCDE /* HealthKit.framework */; };
+		A1000023238ABCDE /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1100023238ABCDE /* DebugLogger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +58,8 @@
 		A110000E238ABCDE /* NutritionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionCard.swift; sourceTree = "<group>"; };
 		A110000F238ABCDE /* CalorieBalanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieBalanceView.swift; sourceTree = "<group>"; };
 		A1100010238ABCDE /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		A1100011238ABCDE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1100012238ABCDE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		A1100014238ABCDE /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		A1100015238ABCDE /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
 		A1100016238ABCDE /* AIAdvisorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAdvisorView.swift; sourceTree = "<group>"; };
@@ -69,11 +72,10 @@
 		A110001D238ABCDE /* ManualWeightEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWeightEntryView.swift; sourceTree = "<group>"; };
 		A110001E238ABCDE /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
 		A110001F238ABCDE /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
-		A1100022238ABCDE /* FoodPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPreference.swift; sourceTree = "<group>"; };
-		A1100011238ABCDE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A1100012238ABCDE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		A1100020238ABCDE /* CalorieCop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CalorieCop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1100021238ABCDE /* CalorieCop.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalorieCop.entitlements; sourceTree = "<group>"; };
+		A1100022238ABCDE /* FoodPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPreference.swift; sourceTree = "<group>"; };
+		A1100023238ABCDE /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				A1100008238ABCDE /* HealthKitService.swift */,
 				A1100009238ABCDE /* APIKeyManager.swift */,
 				A110001B238ABCDE /* Secrets.swift */,
+				A1100023238ABCDE /* DebugLogger.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -171,27 +174,6 @@
 				A1300019238ABCDE /* Components */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		A130001B238ABCDE /* Goals */ = {
-			isa = PBXGroup;
-			children = (
-				A1100018238ABCDE /* WeightChartView.swift */,
-				A1100019238ABCDE /* GoalSettingView.swift */,
-				A110001A238ABCDE /* GoalsView.swift */,
-				A110001D238ABCDE /* ManualWeightEntryView.swift */,
-			);
-			path = Goals;
-			sourceTree = "<group>";
-		};
-		A130001A238ABCDE /* History */ = {
-			isa = PBXGroup;
-			children = (
-				A1100014238ABCDE /* HistoryView.swift */,
-				A1100015238ABCDE /* DayDetailView.swift */,
-				A1100016238ABCDE /* AIAdvisorView.swift */,
-			);
-			path = History;
 			sourceTree = "<group>";
 		};
 		A1300014238ABCDE /* Utilities */ = {
@@ -245,6 +227,27 @@
 				A110000F238ABCDE /* CalorieBalanceView.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		A130001A238ABCDE /* History */ = {
+			isa = PBXGroup;
+			children = (
+				A1100014238ABCDE /* HistoryView.swift */,
+				A1100015238ABCDE /* DayDetailView.swift */,
+				A1100016238ABCDE /* AIAdvisorView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		A130001B238ABCDE /* Goals */ = {
+			isa = PBXGroup;
+			children = (
+				A1100018238ABCDE /* WeightChartView.swift */,
+				A1100019238ABCDE /* GoalSettingView.swift */,
+				A110001A238ABCDE /* GoalsView.swift */,
+				A110001D238ABCDE /* ManualWeightEntryView.swift */,
+			);
+			path = Goals;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -346,6 +349,7 @@
 				A100001E238ABCDE /* UserSettings.swift in Sources */,
 				A100001F238ABCDE /* ChatMessage.swift in Sources */,
 				A1000022238ABCDE /* FoodPreference.swift in Sources */,
+				A1000023238ABCDE /* DebugLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -479,7 +483,7 @@
 				CODE_SIGN_ENTITLEMENTS = CalorieCop/CalorieCop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = ZSS6WXY389;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "CalorieCop需要使用相机来拍摄食物照片进行营养分析。";
@@ -512,7 +516,7 @@
 				CODE_SIGN_ENTITLEMENTS = CalorieCop/CalorieCop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = ZSS6WXY389;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "CalorieCop需要使用相机来拍摄食物照片进行营养分析。";

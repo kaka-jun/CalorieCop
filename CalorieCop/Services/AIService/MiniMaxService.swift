@@ -4,7 +4,9 @@ import UIKit
 final class MiniMaxService: AIServiceProtocol {
     private let endpoint = URL(string: "https://api.minimaxi.chat/v1/text/chatcompletion_v2")!
     private let model = "MiniMax-Text-01"
-    private let visionModel = "MiniMax-VL-01"
+    // MiniMax-M2.5 has native multimodal (vision) capabilities
+    private let visionModel = "MiniMax-M2.5"
+    private let logger = DebugLogger.shared
 
     func parseFoodInput(_ input: String) async throws -> NutritionInfo {
         try await parseFoodInput(input, preferences: [])
@@ -78,20 +80,29 @@ final class MiniMaxService: AIServiceProtocol {
             throw AIServiceError.invalidResponse
         }
 
-        // Debug
-        if let rawString = String(data: data, encoding: .utf8) {
-            print("Vision API Response: \(rawString)")
-        }
+        // Debug - log raw response
+        let rawString = String(data: data, encoding: .utf8) ?? "无法解码响应"
+        logger.logAPIResponse(statusCode: httpResponse.statusCode, body: rawString)
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw AIServiceError.parsingError("API Error (\(httpResponse.statusCode)): \(errorMsg)")
+            throw AIServiceError.parsingError("API Error (\(httpResponse.statusCode)): \(rawString)")
         }
 
-        let miniMaxResponse = try JSONDecoder().decode(MiniMaxResponse.self, from: data)
+        let miniMaxResponse: MiniMaxResponse
+        do {
+            miniMaxResponse = try JSONDecoder().decode(MiniMaxResponse.self, from: data)
+        } catch {
+            print("MiniMaxResponse decode error: \(error)")
+            throw AIServiceError.parsingError("API响应格式错误: \(rawString.prefix(300))")
+        }
 
-        guard let content = miniMaxResponse.choices.first?.message.content else {
-            throw AIServiceError.invalidResponse
+        // Check for API error
+        if let error = miniMaxResponse.error {
+            throw AIServiceError.parsingError("API错误: \(error.message ?? error.code ?? "未知错误")")
+        }
+
+        guard let content = miniMaxResponse.firstContent else {
+            throw AIServiceError.parsingError("API返回为空: \(rawString.prefix(300))")
         }
 
         let jsonString = extractJSON(from: content)
@@ -100,8 +111,14 @@ final class MiniMaxService: AIServiceProtocol {
             throw AIServiceError.parsingError("Failed to convert content to data")
         }
 
-        let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
-        return nutritionInfo
+        do {
+            let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
+            return nutritionInfo
+        } catch {
+            print("JSON Decode Error: \(error)")
+            print("Raw JSON: \(jsonString)")
+            throw AIServiceError.parsingError("解析失败: \(error.localizedDescription)\n原始数据: \(jsonString.prefix(200))")
+        }
     }
 
     private func sendRequest(_ requestBody: MiniMaxRequest) async throws -> NutritionInfo {
@@ -121,25 +138,46 @@ final class MiniMaxService: AIServiceProtocol {
             throw AIServiceError.invalidResponse
         }
 
+        let rawString = String(data: data, encoding: .utf8) ?? "无法解码响应"
+        logger.logAPIResponse(statusCode: httpResponse.statusCode, body: rawString)
+
         guard (200...299).contains(httpResponse.statusCode) else {
-            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw AIServiceError.parsingError("API Error (\(httpResponse.statusCode)): \(errorMsg)")
+            logger.logError(AIServiceError.parsingError("HTTP \(httpResponse.statusCode)"), context: "API call failed")
+            throw AIServiceError.parsingError("API Error (\(httpResponse.statusCode)): \(rawString)")
         }
 
-        let miniMaxResponse = try JSONDecoder().decode(MiniMaxResponse.self, from: data)
+        let miniMaxResponse: MiniMaxResponse
+        do {
+            miniMaxResponse = try JSONDecoder().decode(MiniMaxResponse.self, from: data)
+        } catch {
+            logger.logError(error, context: "MiniMaxResponse decode")
+            throw AIServiceError.parsingError("API响应格式错误: \(rawString.prefix(300))")
+        }
 
-        guard let content = miniMaxResponse.choices.first?.message.content else {
-            throw AIServiceError.invalidResponse
+        if let apiError = miniMaxResponse.error {
+            logger.log("API returned error: \(apiError.message ?? apiError.code ?? "unknown")")
+            throw AIServiceError.parsingError("API错误: \(apiError.message ?? apiError.code ?? "未知错误")")
+        }
+
+        guard let content = miniMaxResponse.firstContent else {
+            logger.log("API returned empty content. Raw: \(rawString)")
+            throw AIServiceError.parsingError("API返回为空: \(rawString.prefix(300))")
         }
 
         let jsonString = extractJSON(from: content)
+        logger.log("Extracted JSON: \(jsonString)")
 
         guard let contentData = jsonString.data(using: .utf8) else {
-            throw AIServiceError.parsingError("Failed to convert content to data")
+            throw AIServiceError.parsingError("无法转换内容")
         }
 
-        let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
-        return nutritionInfo
+        do {
+            let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
+            return nutritionInfo
+        } catch {
+            logger.logError(error, context: "NutritionInfo decode. JSON: \(jsonString)")
+            throw AIServiceError.parsingError("营养信息解析失败: \(jsonString.prefix(200))")
+        }
     }
 
     private func extractJSON(from content: String) -> String {
@@ -288,7 +326,18 @@ private struct TextContent: Encodable {
 // MARK: - Response Models
 
 private struct MiniMaxResponse: Decodable {
-    let choices: [Choice]
+    let choices: [Choice]?
+    let error: MiniMaxError?
+
+    // Handle both possible response structures
+    var firstContent: String? {
+        choices?.first?.message.content
+    }
+}
+
+private struct MiniMaxError: Decodable {
+    let message: String?
+    let code: String?
 }
 
 private struct Choice: Decodable {

@@ -217,6 +217,11 @@ struct FoodInputView: View {
     }
 
     private func parseFood() async {
+        // Dismiss keyboard first
+        _ = await MainActor.run {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -244,11 +249,18 @@ struct FoodInputView: View {
         let entry = FoodEntry(rawInput: inputText.isEmpty ? "图片识别: \(nutrition.foodName)" : inputText, nutrition: nutrition)
         modelContext.insert(entry)
 
+        // Explicitly save to ensure Dashboard updates immediately
+        try? modelContext.save()
+
+        // Reset state
         inputText = ""
         selectedImage = nil
         selectedPhoto = nil
         parsedNutrition = nil
         showConfirmation = false
+
+        // Dismiss keyboard
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
