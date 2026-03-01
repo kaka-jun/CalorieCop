@@ -54,10 +54,16 @@ struct DashboardView: View {
         return goal.calculateTDEE(currentWeight: weight)
     }
 
-    // Use HealthKit data or calculated TDEE based on toggle
+    // Use HealthKit active calories + calculated BMR, or fully calculated TDEE
     private var totalCaloriesBurned: Double {
         if useAppleWatchData && hasAppleWatchData {
-            return healthKitService.totalCaloriesBurned
+            // Use our calculated BMR (full 24h) + Apple Watch active calories
+            // Apple Watch's basalEnergyBurned is only cumulative from midnight, not full 24h
+            guard let goal = currentGoal, let weight = currentWeight else {
+                return healthKitService.totalCaloriesBurned
+            }
+            let bmr = goal.calculateBMR(currentWeight: weight)
+            return bmr + healthKitService.activeCaloriesBurned
         }
         return calculatedTDEE ?? healthKitService.totalCaloriesBurned
     }
