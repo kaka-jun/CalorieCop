@@ -2,6 +2,13 @@
 
 A personal health management iOS app for calorie tracking and weight management.
 
+## Version History
+
+- **v0.0.0** - First MVP version (stable baseline)
+- **v0.0.1** - UI redesign WIP (simplified Dashboard, mascot avatar)
+
+To switch versions: `git checkout v0.0.0` or `git checkout v0.0.1`
+
 ## Tech Stack
 
 - **UI**: SwiftUI (iOS 17+)
@@ -100,4 +107,32 @@ xcodebuild -scheme CalorieCop -destination 'platform=iOS Simulator,name=iPhone 1
 
 # Open project
 open CalorieCop.xcodeproj
+
+# View git tags
+git tag -l
+
+# Switch to a version
+git checkout v0.0.0
 ```
+
+## Known Issues
+
+- **MiniMax Vision API**: Image recognition may not work reliably. The API sometimes returns "纯文本AI助手" error. May need alternative API (OpenAI, Claude) for vision.
+- **HealthKit**: Requires physical device with Apple Watch for real activity data. Simulator uses estimated values.
+
+## Design Notes
+
+### Dashboard (今日概览)
+- v0.0.0: Simple layout with calorie balance card, metabolism breakdown, nutrition stats
+- v0.0.1: Attempted redesign with mascot, circular progress ring (reverted to simpler design)
+
+### Calorie Calculation
+- **缺口 (deficit)** = 总消耗 (BMR + active) - 摄入
+- Positive deficit = good for weight loss (green)
+- Negative deficit = 超出, over budget (red)
+- Toggle between 实时 (Apple Watch) and 估算 (calculated) data
+
+### Mascot
+- Asset: `mascot_avatar` in Assets.xcassets
+- Police officer character (inspired by Judy Hopps)
+- Used in empty states and encouragement messages
