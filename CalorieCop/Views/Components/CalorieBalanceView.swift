@@ -22,51 +22,60 @@ struct CalorieBalanceView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 24) {
+            HStack(spacing: 12) {
                 VStack(spacing: 4) {
                     Image(systemName: "fork.knife")
-                        .font(.title2)
+                        .font(.title3)
                         .foregroundStyle(.orange)
                     Text(consumed.formattedCalories)
-                        .font(.title)
+                        .font(.title2)
                         .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text("摄入")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .frame(minWidth: 60)
 
                 Image(systemName: "minus")
-                    .font(.title2)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
 
                 VStack(spacing: 4) {
                     Image(systemName: "flame.fill")
-                        .font(.title2)
+                        .font(.title3)
                         .foregroundStyle(.red)
                     Text(burned.formattedCalories)
-                        .font(.title)
+                        .font(.title2)
                         .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text("消耗")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .frame(minWidth: 60)
 
                 Image(systemName: "equal")
-                    .font(.title2)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
 
                 VStack(spacing: 4) {
                     Image(systemName: isDeficit ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                        .font(.title2)
+                        .font(.title3)
                         .foregroundStyle(isDeficit ? .green : .red)
                     Text(abs(balance).formattedCalories)
-                        .font(.title)
+                        .font(.title2)
                         .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .foregroundStyle(isDeficit ? .green : .red)
                     Text(isDeficit ? "缺口" : "盈余")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .frame(minWidth: 60)
             }
 
             // Show remaining calories based on target deficit

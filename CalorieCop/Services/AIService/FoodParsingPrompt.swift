@@ -16,18 +16,19 @@ enum FoodParsingPrompt {
    - "上周X" = 计算距今天数
    - "X天前" = days_ago: X
 
-必须返回以下JSON格式：
-{
-  "food_name": "食物名称（中文）",
-  "grams": 克重数值,
-  "calories": 卡路里数值,
-  "protein": 蛋白质克数,
-  "carbohydrates": 碳水化合物克数,
-  "fat": 脂肪克数,
-  "confidence": "high/medium/low",
-  "notes": "可选备注，如份量估算说明",
-  "days_ago": 距今天数（0=今天，1=昨天，以此类推）
-}
+【重要】必须返回严格的JSON格式，不要返回YAML或其他格式。示例：
+{"food_name": "煮玉米", "grams": 200, "calories": 196, "protein": 4.2, "carbohydrates": 41.2, "fat": 2.4, "confidence": "high", "notes": "一根中等大小", "days_ago": 0}
+
+字段说明：
+- food_name: 食物名称（中文字符串）
+- grams: 克重（数字）
+- calories: 卡路里（数字）
+- protein: 蛋白质克数（数字）
+- carbohydrates: 碳水化合物克数（数字）
+- fat: 脂肪克数（数字）
+- confidence: "high"/"medium"/"low"
+- notes: 可选备注
+- days_ago: 距今天数（0=今天，1=昨天）
 """
 
     /// Generate system prompt with user's food preferences

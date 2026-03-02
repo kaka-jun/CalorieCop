@@ -36,11 +36,11 @@ final class MiniMaxService: AIServiceProtocol {
             throw AIServiceError.apiKeyNotConfigured
         }
 
-        // Resize image if too large
-        let resizedImage = resizeImage(image, maxDimension: 1024)
+        // Resize image for faster upload (512px is sufficient for food recognition)
+        let resizedImage = resizeImage(image, maxDimension: 512)
 
-        // Convert to base64
-        guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else {
+        // Convert to base64 with lower quality for speed
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.6) else {
             throw AIServiceError.parsingError("Failed to process image")
         }
         let base64String = imageData.base64EncodedString()
@@ -182,17 +182,66 @@ final class MiniMaxService: AIServiceProtocol {
     }
 
     private func extractJSON(from content: String) -> String {
-        var cleaned = content
+        let cleaned = content
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // Try to find JSON object first
         if let start = cleaned.firstIndex(of: "{"),
            let end = cleaned.lastIndex(of: "}") {
-            cleaned = String(cleaned[start...end])
+            return String(cleaned[start...end])
+        }
+
+        // Fallback: Convert YAML-like format to JSON
+        // Format like: food_name: 煮玉米\ngrams: 200\n...
+        if cleaned.contains(":") && !cleaned.contains("{") {
+            return convertYAMLToJSON(cleaned)
         }
 
         return cleaned
+    }
+
+    private func convertYAMLToJSON(_ yaml: String) -> String {
+        var dict: [String: Any] = [:]
+        let lines = yaml.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            // Split on first colon
+            if let colonIndex = trimmed.firstIndex(of: ":") {
+                let key = String(trimmed[..<colonIndex]).trimmingCharacters(in: .whitespaces)
+                let value = String(trimmed[trimmed.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
+
+                // Skip empty values
+                guard !value.isEmpty else { continue }
+
+                // Try to parse as number
+                if let doubleValue = Double(value) {
+                    dict[key] = doubleValue
+                } else if let intValue = Int(value) {
+                    dict[key] = intValue
+                } else {
+                    // Remove quotes if present
+                    var strValue = value
+                    if (strValue.hasPrefix("\"") && strValue.hasSuffix("\"")) ||
+                       (strValue.hasPrefix("'") && strValue.hasSuffix("'")) {
+                        strValue = String(strValue.dropFirst().dropLast())
+                    }
+                    dict[key] = strValue
+                }
+            }
+        }
+
+        // Convert to JSON
+        if let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            return jsonString
+        }
+
+        return yaml
     }
 
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
