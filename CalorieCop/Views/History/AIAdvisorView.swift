@@ -10,8 +10,10 @@ struct AIAdvisorView: View {
     let userGoal: UserGoal?
     let currentWeight: Double?
     let weightHistory: [WeightEntry]
+    var initialPrompt: String = ""
 
     @State private var userQuestion = ""
+    @State private var hasUsedInitialPrompt = false
     @State private var isLoading = false
     @State private var showingDeleteConfirmation = false
 
@@ -188,6 +190,17 @@ struct AIAdvisorView: View {
             .onTapGesture {
                 // Dismiss keyboard when tapping outside text field
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            .onAppear {
+                // Auto-send initial prompt if provided
+                if !initialPrompt.isEmpty && !hasUsedInitialPrompt {
+                    hasUsedInitialPrompt = true
+                    userQuestion = initialPrompt
+                    Task {
+                        try? await Task.sleep(nanoseconds: 300_000_000) // Small delay for UI
+                        await sendMessage()
+                    }
+                }
             }
         }
     }

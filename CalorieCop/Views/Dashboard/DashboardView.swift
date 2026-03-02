@@ -11,8 +11,8 @@ struct DashboardView: View {
     @Query private var goals: [UserGoal]
     @Query(sort: \WeightEntry.date, order: .reverse) private var manualWeightEntries: [WeightEntry]
 
-    @State private var useAppleWatchData = true  // Toggle for data source
-    @State private var goalRefreshTrigger = UUID()  // Force refresh when goal changes
+    @State private var useAppleWatchData = true
+    @State private var goalRefreshTrigger = UUID()
 
     private var currentGoal: UserGoal? { goals.first }
 
@@ -41,24 +41,19 @@ struct DashboardView: View {
         todayEntries.reduce(0) { $0 + $1.fat }
     }
 
-    // Get current weight from HealthKit or manual entries
     private var currentWeight: Double? {
         let latestManual = manualWeightEntries.first?.weight
         let latestHealthKit = healthKitService.currentWeight
         return latestHealthKit ?? latestManual
     }
 
-    // Calculate total daily energy expenditure
     private var calculatedTDEE: Double? {
         guard let goal = currentGoal, let weight = currentWeight else { return nil }
         return goal.calculateTDEE(currentWeight: weight)
     }
 
-    // Use HealthKit active calories + calculated BMR, or fully calculated TDEE
     private var totalCaloriesBurned: Double {
         if useAppleWatchData && hasAppleWatchData {
-            // Use our calculated BMR (full 24h) + Apple Watch active calories
-            // Apple Watch's basalEnergyBurned is only cumulative from midnight, not full 24h
             guard let goal = currentGoal, let weight = currentWeight else {
                 return healthKitService.totalCaloriesBurned
             }
@@ -68,7 +63,6 @@ struct DashboardView: View {
         return calculatedTDEE ?? healthKitService.totalCaloriesBurned
     }
 
-    // Get active calories based on toggle
     private var activeCalories: Double {
         guard let goal = currentGoal, let weight = currentWeight else { return 0 }
         if useAppleWatchData && hasAppleWatchData {
@@ -77,40 +71,86 @@ struct DashboardView: View {
         return goal.calculateTDEE(currentWeight: weight) - goal.calculateBMR(currentWeight: weight)
     }
 
-    // Check if currently showing estimated data
+    private var bmrCalories: Double {
+        guard let goal = currentGoal, let weight = currentWeight else { return 0 }
+        return goal.calculateBMR(currentWeight: weight)
+    }
+
     private var isShowingEstimated: Bool {
         !useAppleWatchData || !hasAppleWatchData
     }
 
-    // Get recommended daily calories based on goal
     private var recommendedCalories: Double? {
         guard let goal = currentGoal, let weight = currentWeight else { return nil }
         return goal.recommendedDailyCalories(currentWeight: weight)
     }
 
-    // Target deficit = TDEE - recommended (the planned daily deficit to reach weight goal)
-    private var targetDeficit: Double? {
-        guard let goal = currentGoal, let weight = currentWeight else { return nil }
-        let tdee = goal.calculateTDEE(currentWeight: weight)
-        let recommended = goal.recommendedDailyCalories(currentWeight: weight)
-        return tdee - recommended
+    private var dailyGoal: Double {
+        recommendedCalories ?? 2000
+    }
+
+    // 缺口 = 消耗 - 摄入
+    private var deficit: Double {
+        totalCaloriesBurned - totalCaloriesConsumed
+    }
+
+    // 还可吃 = 目标 - 已摄入
+    private var remainingCalories: Double {
+        dailyGoal - totalCaloriesConsumed
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    calorieBalanceSection
+                VStack(spacing: 16) {
+                    // Main calorie card
+                    calorieOverviewCard
+                        .padding(.horizontal)
 
-                    if let goal = currentGoal, let weight = currentWeight {
-                        metabolismCard(goal: goal, weight: weight)
+                    // Remaining and goal
+                    HStack {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("还可吃 \(Int(max(0, remainingCalories))) kcal")
+                                .font(.subheadline)
+                        }
+
+                        Spacer()
+
+                        Text("目标 \(Int(dailyGoal).formatted()) kcal")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.horizontal)
 
-                    macroNutrientsSection
+                    // Data source note
+                    Text("基于身体数据\(isShowingEstimated ? "估算" : "实时")消耗")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
+                    // Calorie burn breakdown
+                    CalorieBurnBreakdownView(
+                        bmr: bmrCalories,
+                        active: activeCalories,
+                        total: totalCaloriesBurned,
+                        isEstimated: isShowingEstimated
+                    )
+                    .padding(.horizontal)
+
+                    // Nutrition breakdown
+                    NutritionBreakdownView(
+                        protein: totalProtein,
+                        carbs: totalCarbs,
+                        fat: totalFat
+                    )
+                    .padding(.horizontal)
+
+                    // Today's food list
                     foodListSection
+                        .padding(.horizontal)
                 }
-                .padding()
+                .padding(.vertical)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("今日概览")
@@ -127,7 +167,8 @@ struct DashboardView: View {
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(useAppleWatchData ? Color.green.opacity(0.2) : Color.orange.opacity(0.2))
+                        .background(useAppleWatchData ? Color.green.opacity(0.15) : Color.orange.opacity(0.15))
+                        .foregroundStyle(useAppleWatchData ? .green : .orange)
                         .clipShape(Capsule())
                     }
                     .disabled(!hasAppleWatchData)
@@ -141,118 +182,71 @@ struct DashboardView: View {
                 await healthKitService.fetchTodayCaloriesBurned()
             }
             .onChange(of: currentGoal?.targetDate) {
-                // Force refresh when target date changes
                 goalRefreshTrigger = UUID()
             }
             .onChange(of: currentGoal?.updatedAt) {
-                // Force refresh when goal is updated
                 goalRefreshTrigger = UUID()
             }
         }
     }
 
-    private var calorieBalanceSection: some View {
-        VStack(spacing: 8) {
-            CalorieBalanceView(
-                consumed: totalCaloriesConsumed,
-                burned: totalCaloriesBurned,
-                targetDeficit: targetDeficit
-            )
-            .id("\(goalRefreshTrigger)-\(useAppleWatchData)")  // Force refresh when goal or toggle changes
-
-            if isShowingEstimated {
-                Text("基于身体数据估算消耗")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("来自 Apple Watch 实时数据")
-                    .font(.caption2)
+    private var calorieOverviewCard: some View {
+        HStack(spacing: 0) {
+            // 摄入
+            VStack(spacing: 4) {
+                Image(systemName: "fork.knife")
+                    .font(.title2)
+                    .foregroundStyle(.orange)
+                Text("\(Int(totalCaloriesConsumed))")
+                    .font(.title)
+                    .fontWeight(.bold)
+                Text("摄入")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        }
-    }
+            .frame(maxWidth: .infinity)
 
-    private func metabolismCard(goal: UserGoal, weight: Double) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("今日消耗明细")
-                .font(.headline)
+            Text("-")
+                .font(.title2)
+                .foregroundStyle(.secondary)
 
-            HStack(spacing: 16) {
-                // BMR
-                VStack(spacing: 4) {
-                    Image(systemName: "bed.double.fill")
-                        .font(.title2)
-                        .foregroundStyle(.purple)
-                    Text("\(Int(goal.calculateBMR(currentWeight: weight)))")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                    Text("基础代谢")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                // Activity calories
-                VStack(spacing: 4) {
-                    Image(systemName: isShowingEstimated ? "figure.walk" : "applewatch")
-                        .font(.title2)
-                        .foregroundStyle(.green)
-                    Text("\(Int(activeCalories))")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                    Text(isShowingEstimated ? "活动消耗(估)" : "活动消耗")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                // Total TDEE
-                VStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.title2)
-                        .foregroundStyle(.orange)
-                    Text("\(Int(totalCaloriesBurned))")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                    Text("总消耗")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
+            // 消耗
+            VStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                    .font(.title2)
+                    .foregroundStyle(.red)
+                Text("\(Int(totalCaloriesBurned))")
+                    .font(.title)
+                    .fontWeight(.bold)
+                Text("消耗")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity)
+
+            Text("=")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+
+            // 缺口
+            VStack(spacing: 4) {
+                Image(systemName: deficit >= 0 ? "bed.double.fill" : "exclamationmark.triangle.fill")
+                    .font(.title2)
+                    .foregroundStyle(deficit >= 0 ? .purple : .red)
+                Text("\(Int(abs(deficit)))")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(deficit >= 0 ? Color.primary : Color.red)
+                Text(deficit >= 0 ? "缺口" : "超出")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
         }
         .padding()
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-    }
-
-    private var macroNutrientsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("营养摄入")
-                .font(.headline)
-
-            HStack(spacing: 12) {
-                NutritionCard(
-                    title: "蛋白质",
-                    value: totalProtein.formattedGrams,
-                    unit: "g",
-                    color: .red
-                )
-                NutritionCard(
-                    title: "碳水",
-                    value: totalCarbs.formattedGrams,
-                    unit: "g",
-                    color: .blue
-                )
-                NutritionCard(
-                    title: "脂肪",
-                    value: totalFat.formattedGrams,
-                    unit: "g",
-                    color: .yellow
-                )
-            }
-        }
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 
     private var foodListSection: some View {
@@ -266,8 +260,24 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
             }
 
-            FoodListView()
-                .frame(minHeight: 200)
+            if todayEntries.isEmpty {
+                VStack(spacing: 12) {
+                    Image("mascot_avatar")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 60, height: 60)
+                    Text("还没有记录哦")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                FoodListView()
+                    .frame(minHeight: 200)
+            }
         }
     }
 }
@@ -275,4 +285,108 @@ struct DashboardView: View {
 #Preview {
     DashboardView()
         .modelContainer(for: [FoodEntry.self, UserGoal.self, WeightEntry.self], inMemory: true)
+}
+
+// MARK: - Calorie Burn Breakdown View
+
+struct CalorieBurnBreakdownView: View {
+    let bmr: Double
+    let active: Double
+    let total: Double
+    var isEstimated: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("今日消耗明细")
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            HStack(spacing: 12) {
+                BurnItem(icon: "bed.double.fill", value: Int(bmr), label: "基础代谢", color: .purple)
+                BurnItem(icon: "figure.run", value: Int(active), label: isEstimated ? "活动消耗(估)" : "活动消耗", color: .green)
+                BurnItem(icon: "flame.fill", value: Int(total), label: "总消耗", color: .orange)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+struct BurnItem: View {
+    let icon: String
+    let value: Int
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+
+            Text("\(value.formatted())")
+                .font(.headline)
+                .fontWeight(.bold)
+
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Nutrition Breakdown View
+
+struct NutritionBreakdownView: View {
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("营养摄入")
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            HStack(spacing: 12) {
+                NutritionStatCard(label: "蛋白质", value: protein, color: .red)
+                NutritionStatCard(label: "碳水", value: carbs, color: .blue)
+                NutritionStatCard(label: "脂肪", value: fat, color: .yellow)
+            }
+        }
+    }
+}
+
+struct NutritionStatCard: View {
+    let label: String
+    let value: Double
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(color.opacity(0.2))
+                .foregroundStyle(color)
+                .clipShape(Capsule())
+
+            Text(String(format: "%.1f", value))
+                .font(.title2)
+                .fontWeight(.bold)
+
+            Text("g")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
 }

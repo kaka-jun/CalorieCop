@@ -136,6 +136,7 @@ struct DayDetailView: View {
 
     private func deleteEntry(_ entry: FoodEntry) {
         modelContext.delete(entry)
+        try? modelContext.save()
         entries.removeAll { $0.id == entry.id }
         entryToDelete = nil
     }

@@ -50,7 +50,8 @@ final class MiniMaxService: AIServiceProtocol {
             userPrompt += " 额外信息：\(context)"
         }
 
-        let imageContent = ImageContent(
+        // Try OpenAI format
+        let imageContent = ImageContentOpenAI(
             type: "image_url",
             imageUrl: ImageURL(url: "data:image/jpeg;base64,\(base64String)")
         )
@@ -73,7 +74,14 @@ final class MiniMaxService: AIServiceProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let encoder = JSONEncoder()
-        request.httpBody = try encoder.encode(requestBody)
+        encoder.outputFormatting = .prettyPrinted
+        let jsonData = try encoder.encode(requestBody)
+        request.httpBody = jsonData
+
+        // Debug: Log the request JSON
+        if let jsonString = String(data: jsonData, encoding: .utf8) {
+            logger.log("Vision Request JSON:\n\(jsonString.prefix(2000))")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -335,6 +343,8 @@ private struct VisionMessage: Encodable {
             for item in mixedContent {
                 if let imageContent = item as? ImageContent {
                     try contentContainer.encode(imageContent)
+                } else if let imageContentOpenAI = item as? ImageContentOpenAI {
+                    try contentContainer.encode(imageContentOpenAI)
                 } else if let textContent = item as? TextContent {
                     try contentContainer.encode(textContent)
                 }
@@ -354,7 +364,8 @@ private struct VisionMessage: Encodable {
     }
 }
 
-private struct ImageContent: Encodable {
+// OpenAI format
+private struct ImageContentOpenAI: Encodable {
     let type: String
     let imageUrl: ImageURL
 
@@ -366,6 +377,29 @@ private struct ImageContent: Encodable {
 
 private struct ImageURL: Encodable {
     let url: String
+}
+
+// Anthropic format (MiniMax claims compatibility)
+private struct ImageContent: Encodable {
+    let type: String
+    let source: ImageSource
+
+    init(base64Data: String, mediaType: String = "image/jpeg") {
+        self.type = "image"
+        self.source = ImageSource(type: "base64", mediaType: mediaType, data: base64Data)
+    }
+}
+
+private struct ImageSource: Encodable {
+    let type: String
+    let mediaType: String
+    let data: String
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case mediaType = "media_type"
+        case data
+    }
 }
 
 private struct TextContent: Encodable {

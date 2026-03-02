@@ -5,12 +5,14 @@ import PhotosUI
 struct FoodInputView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \FoodPreference.usageCount, order: .reverse) private var foodPreferences: [FoodPreference]
+    @Query(sort: \FoodEntry.createdAt, order: .reverse) private var recentEntries: [FoodEntry]
 
     @State private var inputText = ""
     @State private var isLoading = false
     @State private var parsedNutrition: NutritionInfo?
     @State private var errorMessage: String?
     @State private var showConfirmation = false
+    @State private var showTextInput = false
 
     // Image picker
     @State private var selectedPhoto: PhotosPickerItem?
@@ -24,32 +26,53 @@ struct FoodInputView: View {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }
 
+    // Get recent unique foods (last 10)
+    private var recentFoods: [FoodEntry] {
+        var seen = Set<String>()
+        return recentEntries.filter { entry in
+            guard !seen.contains(entry.foodName) else { return false }
+            seen.insert(entry.foodName)
+            return true
+        }.prefix(10).map { $0 }
+    }
+
+    // Matching foods based on input text
+    private var matchingFoods: [FoodEntry] {
+        if inputText.isEmpty {
+            return []
+        }
+        return recentFoods.filter {
+            $0.foodName.localizedCaseInsensitiveContains(inputText)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    instructionText
+                    // Input methods (camera, photo, text)
+                    cameraSection
 
-                    // Image input section
-                    imageInputSection
+                    // Text input (shown when no image selected)
+                    if showTextInput || selectedImage != nil {
+                        textInputSection
 
-                    // Dynamic divider text based on whether image is selected
-                    if selectedImage != nil {
-                        dividerWithText("补充说明 (可选)")
-                    } else {
-                        dividerWithText("或直接输入文字")
+                        // Matching foods when typing
+                        if !matchingFoods.isEmpty && selectedImage == nil {
+                            matchingFoodsSection
+                        }
                     }
-
-                    // Text input section
-                    inputField
 
                     if let error = errorMessage {
                         errorView(error)
                     }
-
-                    parseButton
                 }
                 .padding()
+            }
+            .background(Color(.systemGroupedBackground))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
             .navigationTitle("记录食物")
             .sheet(isPresented: $showConfirmation) {
@@ -75,30 +98,22 @@ struct FoodInputView: View {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         selectedImage = image
+                        showTextInput = true
                     }
                 }
-            }
-            .onTapGesture {
-                // Dismiss keyboard when tapping outside text field
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
         }
     }
 
-    private var instructionText: some View {
-        Text("拍照识别食物，可配合文字补充说明")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-    }
-
-    private var imageInputSection: some View {
-        VStack(spacing: 12) {
+    private var cameraSection: some View {
+        VStack(spacing: 16) {
             if let image = selectedImage {
+                // Show selected image
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
                     .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     .overlay(alignment: .topTrailing) {
                         Button {
                             selectedImage = nil
@@ -111,72 +126,128 @@ struct FoodInputView: View {
                         }
                         .padding(8)
                     }
+
+                // Parse button
+                Button {
+                    Task { await parseFood() }
+                } label: {
+                    HStack {
+                        if isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: "eye.fill")
+                            Text("识别食物")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(isLoading)
             } else {
-                HStack(spacing: 16) {
-                    // Camera button
-                    Button {
+                // Three input method cards
+                HStack(spacing: 12) {
+                    // Camera card
+                    InputMethodCard(
+                        icon: "camera.fill",
+                        title: "拍照",
+                        color: .blue,
+                        isSelected: false
+                    ) {
                         if isCameraAvailable {
                             showingCamera = true
                         } else {
                             showingCameraAlert = true
                         }
-                    } label: {
-                        VStack(spacing: 8) {
-                            Image(systemName: "camera.fill")
-                                .font(.title)
-                            Text("拍照")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 24)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
-                    // Photo library button
+                    // Photo library card
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "photo.fill")
-                                .font(.title)
-                            Text("相册")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 24)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        InputMethodCardContent(
+                            icon: "photo.fill",
+                            title: "相册",
+                            color: .green,
+                            isSelected: false
+                        )
+                    }
+
+                    // Text input card
+                    InputMethodCard(
+                        icon: "keyboard",
+                        title: "文字",
+                        color: .orange,
+                        isSelected: showTextInput
+                    ) {
+                        showTextInput.toggle()
                     }
                 }
-                .foregroundStyle(.primary)
+
+                // Mascot speech bubble
+                HStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Text("拍照或输入文字记录你的饮食~")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Image("mascot_avatar")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 40, height: 40)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.05), radius: 4)
+                }
             }
         }
     }
 
-    private func dividerWithText(_ text: String) -> some View {
-        HStack {
-            Rectangle()
-                .fill(Color(.systemGray4))
-                .frame(height: 1)
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Rectangle()
-                .fill(Color(.systemGray4))
-                .frame(height: 1)
-        }
-    }
+    private var textInputSection: some View {
+        VStack(spacing: 12) {
+            if selectedImage == nil {
+                Text("描述你吃的食物")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
-    private var inputField: some View {
-        let placeholder = selectedImage != nil
-            ? "补充说明：如份量、时间等（可选）"
-            : "例如：一碗米饭、两个鸡蛋、昨天的晚餐"
-
-        return TextField(placeholder, text: $inputText, axis: .vertical)
+            TextField(
+                selectedImage != nil ? "补充说明（可选）" : "例如：一碗米饭、两个鸡蛋",
+                text: $inputText,
+                axis: .vertical
+            )
             .textFieldStyle(.plain)
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .lineLimit(3...6)
+            .lineLimit(2...4)
+
+            if selectedImage == nil && !inputText.isEmpty {
+                Button {
+                    Task { await parseFood() }
+                } label: {
+                    HStack {
+                        if isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: "sparkles")
+                            Text("解析食物")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(isLoading)
+            }
+        }
     }
 
     private func errorView(_ message: String) -> some View {
@@ -192,36 +263,43 @@ struct FoodInputView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private var parseButton: some View {
-        Button {
-            Task {
-                await parseFood()
-            }
-        } label: {
-            HStack {
-                if isLoading {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: selectedImage != nil ? "eye.fill" : "sparkles")
-                    Text(selectedImage != nil ? "识别食物" : "解析食物")
+    private var matchingFoodsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("匹配的食物")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 0) {
+                ForEach(matchingFoods) { entry in
+                    RecentFoodRow(entry: entry) {
+                        quickAddFood(entry)
+                    }
+                    if entry.id != matchingFoods.last?.id {
+                        Divider().padding(.leading, 56)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(canParse ? Color.blue : Color.gray)
-            .foregroundStyle(.white)
+            .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .disabled(!canParse || isLoading)
     }
 
-    private var canParse: Bool {
-        !inputText.isEmpty || selectedImage != nil
+
+    private func quickAddFood(_ entry: FoodEntry) {
+        let newEntry = FoodEntry(
+            rawInput: "快速添加: \(entry.foodName)",
+            foodName: entry.foodName,
+            grams: entry.grams,
+            calories: entry.calories,
+            protein: entry.protein,
+            carbohydrates: entry.carbohydrates,
+            fat: entry.fat
+        )
+        modelContext.insert(newEntry)
+        try? modelContext.save()
     }
 
     private func parseFood() async {
-        // Dismiss keyboard first
         _ = await MainActor.run {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
@@ -233,10 +311,8 @@ struct FoodInputView: View {
             let nutrition: NutritionInfo
 
             if let image = selectedImage {
-                // Parse with image
                 nutrition = try await aiService.parseFoodImage(image, additionalContext: inputText.isEmpty ? nil : inputText, preferences: foodPreferences)
             } else {
-                // Parse text only
                 nutrition = try await aiService.parseFoodInput(inputText, preferences: foodPreferences)
             }
 
@@ -252,19 +328,69 @@ struct FoodInputView: View {
     private func saveFoodEntry(with nutrition: NutritionInfo) {
         let entry = FoodEntry(rawInput: inputText.isEmpty ? "图片识别: \(nutrition.foodName)" : inputText, nutrition: nutrition)
         modelContext.insert(entry)
-
-        // Explicitly save to ensure Dashboard updates immediately
         try? modelContext.save()
 
-        // Reset state
         inputText = ""
         selectedImage = nil
         selectedPhoto = nil
         parsedNutrition = nil
         showConfirmation = false
+        showTextInput = false
 
-        // Dismiss keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - Recent Food Row
+
+struct RecentFoodRow: View {
+    let entry: FoodEntry
+    let onAdd: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Food icon
+            Text(foodEmoji(for: entry.foodName))
+                .font(.title)
+                .frame(width: 44, height: 44)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.foodName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Text("\(Int(entry.calories))kcal/\(Int(entry.grams))g")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: onAdd) {
+                Image(systemName: "plus.circle")
+                    .font(.title2)
+                    .foregroundStyle(.blue)
+            }
+        }
+        .padding()
+    }
+
+    private func foodEmoji(for name: String) -> String {
+        let emojiMap: [String: String] = [
+            "米饭": "🍚", "面条": "🍜", "鸡蛋": "🥚", "牛奶": "🥛",
+            "苹果": "🍎", "香蕉": "🍌", "鸡肉": "🍗", "牛肉": "🥩",
+            "沙拉": "🥗", "面包": "🍞", "咖啡": "☕️", "酸奶": "🥛",
+            "鱼": "🐟", "虾": "🦐", "蔬菜": "🥬", "玉米": "🌽"
+        ]
+
+        for (key, emoji) in emojiMap {
+            if name.contains(key) {
+                return emoji
+            }
+        }
+        return "🍽️"
     }
 }
 
@@ -304,6 +430,50 @@ struct CameraView: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
         }
+    }
+}
+
+// MARK: - Input Method Card
+
+struct InputMethodCard: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            InputMethodCardContent(icon: icon, title: title, color: color, isSelected: isSelected)
+        }
+    }
+}
+
+struct InputMethodCardContent: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundStyle(isSelected ? .white : color)
+
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .background(isSelected ? color : Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isSelected ? color : Color.gray.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
