@@ -196,6 +196,7 @@ struct AIAdvisorView: View {
         for message in chatMessages {
             modelContext.delete(message)
         }
+        try? modelContext.save()
     }
 
     private func sendMessage() async {

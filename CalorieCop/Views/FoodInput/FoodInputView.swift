@@ -9,8 +9,10 @@ struct FoodInputView: View {
     @State private var inputText = ""
     @State private var isLoading = false
     @State private var parsedNutrition: NutritionInfo?
+    @State private var parsedNutritionList: [NutritionInfo] = []
     @State private var errorMessage: String?
     @State private var showConfirmation = false
+    @State private var showMultipleConfirmation = false
 
     // Image picker
     @State private var selectedPhoto: PhotosPickerItem?
@@ -64,6 +66,14 @@ struct FoodInputView: View {
             }
             .sheet(isPresented: $showingCamera) {
                 CameraView(image: $selectedImage)
+            }
+            .sheet(isPresented: $showMultipleConfirmation) {
+                MultipleFoodConfirmationView(
+                    nutritionList: parsedNutritionList,
+                    onConfirm: { confirmedList in
+                        saveMultipleFoodEntries(confirmedList)
+                    }
+                )
             }
             .alert("相机不可用", isPresented: $showingCameraAlert) {
                 Button("好的", role: .cancel) {}
@@ -230,18 +240,27 @@ struct FoodInputView: View {
         errorMessage = nil
 
         do {
-            let nutrition: NutritionInfo
-
             if let image = selectedImage {
-                // Parse with image
-                nutrition = try await aiService.parseFoodImage(image, additionalContext: inputText.isEmpty ? nil : inputText, preferences: foodPreferences)
+                // Image parsing still returns single item
+                let nutrition = try await aiService.parseFoodImage(image, additionalContext: inputText.isEmpty ? nil : inputText, preferences: foodPreferences)
+                parsedNutrition = nutrition
+                showConfirmation = true
             } else {
-                // Parse text only
-                nutrition = try await aiService.parseFoodInput(inputText, preferences: foodPreferences)
-            }
+                // Text parsing supports multiple items
+                let nutritionList = try await aiService.parseFoodInputMultiple(inputText, preferences: foodPreferences)
 
-            parsedNutrition = nutrition
-            showConfirmation = true
+                if nutritionList.count == 1 {
+                    // Single item - show normal confirmation
+                    parsedNutrition = nutritionList.first
+                    showConfirmation = true
+                } else if nutritionList.count > 1 {
+                    // Multiple items - show multiple confirmation
+                    parsedNutritionList = nutritionList
+                    showMultipleConfirmation = true
+                } else {
+                    errorMessage = "未能识别任何食物"
+                }
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -265,6 +284,145 @@ struct FoodInputView: View {
 
         // Dismiss keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func saveMultipleFoodEntries(_ nutritionList: [NutritionInfo]) {
+        for nutrition in nutritionList {
+            let entry = FoodEntry(rawInput: inputText, nutrition: nutrition)
+            modelContext.insert(entry)
+        }
+        try? modelContext.save()
+
+        inputText = ""
+        selectedImage = nil
+        selectedPhoto = nil
+        parsedNutritionList = []
+        showMultipleConfirmation = false
+
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - Multiple Food Confirmation View
+
+struct MultipleFoodConfirmationView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let nutritionList: [NutritionInfo]
+    let onConfirm: ([NutritionInfo]) -> Void
+
+    @State private var selectedItems: Set<Int>
+
+    init(nutritionList: [NutritionInfo], onConfirm: @escaping ([NutritionInfo]) -> Void) {
+        self.nutritionList = nutritionList
+        self.onConfirm = onConfirm
+        // Default: all items selected
+        self._selectedItems = State(initialValue: Set(0..<nutritionList.count))
+    }
+
+    private var totalCalories: Double {
+        selectedItems.reduce(0) { sum, index in
+            sum + nutritionList[index].calories
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Summary header
+                VStack(spacing: 8) {
+                    Text("识别到 \(nutritionList.count) 种食物")
+                        .font(.headline)
+                    Text("总热量: \(Int(totalCalories)) kcal")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.systemGray6))
+
+                // Food list
+                List {
+                    ForEach(Array(nutritionList.enumerated()), id: \.offset) { index, nutrition in
+                        MultipleFoodRow(
+                            nutrition: nutrition,
+                            isSelected: selectedItems.contains(index),
+                            onToggle: {
+                                if selectedItems.contains(index) {
+                                    selectedItems.remove(index)
+                                } else {
+                                    selectedItems.insert(index)
+                                }
+                            }
+                        )
+                    }
+                }
+                .listStyle(.plain)
+            }
+            .navigationTitle("确认食物")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认 (\(selectedItems.count))") {
+                        let confirmed = selectedItems.sorted().map { nutritionList[$0] }
+                        onConfirm(confirmed)
+                        dismiss()
+                    }
+                    .disabled(selectedItems.isEmpty)
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+struct MultipleFoodRow: View {
+    let nutrition: NutritionInfo
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Checkbox
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isSelected ? .blue : .gray)
+                .font(.title2)
+
+            // Food info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(nutrition.foodName)
+                    .font(.headline)
+
+                HStack(spacing: 8) {
+                    Text("\(Int(nutrition.grams))g")
+                    Text("•")
+                    Text("\(Int(nutrition.calories)) kcal")
+                        .foregroundStyle(.orange)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Text("蛋白\(String(format: "%.1f", nutrition.protein))g")
+                    Text("碳水\(String(format: "%.1f", nutrition.carbohydrates))g")
+                    Text("脂肪\(String(format: "%.1f", nutrition.fat))g")
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onToggle()
+        }
+        .padding(.vertical, 4)
     }
 }
 

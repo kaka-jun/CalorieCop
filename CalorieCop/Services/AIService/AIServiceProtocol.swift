@@ -2,6 +2,7 @@ import Foundation
 
 protocol AIServiceProtocol {
     func parseFoodInput(_ input: String) async throws -> NutritionInfo
+    func parseFoodInputMultiple(_ input: String, preferences: [FoodPreference]) async throws -> [NutritionInfo]
 }
 
 enum AIServiceError: LocalizedError {

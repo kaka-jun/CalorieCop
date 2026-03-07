@@ -21,6 +21,11 @@ struct HistoryView: View {
         return latestHealthKit ?? latestManual
     }
 
+    private var estimatedTDEE: Double {
+        guard let goal = currentGoal, let weight = currentWeight else { return 2000 }
+        return goal.calculateTDEE(currentWeight: weight)
+    }
+
     private var groupedByDay: [(date: Date, entries: [FoodEntry])] {
         let grouped = Dictionary(grouping: allEntries) { entry in
             Calendar.current.startOfDay(for: entry.createdAt)
@@ -83,7 +88,7 @@ struct HistoryView: View {
                 NavigationLink {
                     DayDetailView(date: day.date, entries: day.entries)
                 } label: {
-                    DaySummaryRow(date: day.date, entries: day.entries)
+                    DaySummaryRow(date: day.date, entries: day.entries, estimatedTDEE: estimatedTDEE)
                 }
             }
         }
@@ -94,6 +99,7 @@ struct HistoryView: View {
 struct DaySummaryRow: View {
     let date: Date
     let entries: [FoodEntry]
+    var estimatedTDEE: Double = 2000
 
     private var totalCalories: Double {
         entries.reduce(0) { $0 + $1.calories }
@@ -111,6 +117,11 @@ struct DaySummaryRow: View {
         entries.reduce(0) { $0 + $1.fat }
     }
 
+    // 缺口 = 消耗 - 摄入 (正数表示热量缺口，有利于减重)
+    private var deficit: Double {
+        estimatedTDEE - totalCalories
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -122,14 +133,29 @@ struct DaySummaryRow: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 16) {
-                Label("\(totalCalories.formattedCalories) kcal", systemImage: "flame.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.orange)
+            HStack(spacing: 12) {
+                // 摄入
+                HStack(spacing: 4) {
+                    Image(systemName: "fork.knife")
+                        .foregroundStyle(.orange)
+                    Text("\(Int(totalCalories))")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+
+                // 缺口/超出
+                HStack(spacing: 4) {
+                    Image(systemName: deficit >= 0 ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                        .foregroundStyle(deficit >= 0 ? .green : .red)
+                    Text(deficit >= 0 ? "缺口\(Int(deficit))" : "超出\(Int(abs(deficit)))")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(deficit >= 0 ? .green : .red)
+                }
 
                 Spacer()
 
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text("蛋白\(totalProtein.formattedGrams)g")
                         .font(.caption2)
                         .foregroundStyle(.red)
