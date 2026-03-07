@@ -5,8 +5,8 @@ final class MiniMaxService: AIServiceProtocol {
     private let endpoint = URL(string: "https://api.minimaxi.chat/v1/text/chatcompletion_v2")!
     // MiniMax-M2.5 is the latest model with best performance
     private let model = "MiniMax-M2.5"
-    // Same model supports both text and vision (multimodal)
-    private let visionModel = "MiniMax-M2.5"
+    // MiniMax-M1 for vision/multimodal tasks
+    private let visionModel = "MiniMax-M1"
     private let logger = DebugLogger.shared
 
     func parseFoodInput(_ input: String) async throws -> NutritionInfo {
@@ -41,7 +41,16 @@ final class MiniMaxService: AIServiceProtocol {
     }
 
     func parseFoodImage(_ image: UIImage, additionalContext: String? = nil, preferences: [FoodPreference] = []) async throws -> NutritionInfo {
-        guard let apiKey = APIKeyManager.miniMaxAPIKey, !apiKey.isEmpty else {
+        // Use Qwen VL Plus for image parsing (MiniMax vision models not available via API)
+        let items = try await parseFoodImageMultiple(image, additionalContext: additionalContext, preferences: preferences)
+        guard let first = items.first else {
+            throw AIServiceError.parsingError("未能识别图片中的食物")
+        }
+        return first
+    }
+
+    func parseFoodImageMultiple(_ image: UIImage, additionalContext: String? = nil, preferences: [FoodPreference] = []) async throws -> [NutritionInfo] {
+        guard let apiKey = APIKeyManager.qwenAPIKey, !apiKey.isEmpty else {
             throw AIServiceError.apiKeyNotConfigured
         }
 
@@ -54,35 +63,31 @@ final class MiniMaxService: AIServiceProtocol {
         }
         let base64String = imageData.base64EncodedString()
 
-        var userPrompt = "请识别这张图片中的食物，并估算其营养成分。"
+        var userPrompt = "请识别这张图片中的所有食物，并估算每种食物的营养成分。"
         if let context = additionalContext {
             userPrompt += " 额外信息：\(context)"
         }
 
-        let imageContent = ImageContent(
-            type: "image_url",
-            imageUrl: ImageURL(url: "data:image/jpeg;base64,\(base64String)")
-        )
-
-        let textContent = TextContent(type: "text", text: userPrompt)
-
         let systemPrompt = FoodParsingPrompt.systemPrompt(with: preferences)
 
-        let requestBody = MiniMaxVisionRequest(
-            model: visionModel,
-            messages: [
-                VisionMessage(role: "system", content: systemPrompt),
-                VisionMessage(role: "user", content: [imageContent, textContent])
+        // Build Qwen VL Plus request (OpenAI-compatible format)
+        let requestBody: [String: Any] = [
+            "model": "qwen-vl-plus",
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": [
+                    ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64,\(base64String)"]],
+                    ["type": "text", "text": userPrompt]
+                ]]
             ]
-        )
+        ]
 
-        var request = URLRequest(url: endpoint)
+        let qwenEndpoint = URL(string: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions")!
+        var request = URLRequest(url: qwenEndpoint)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let encoder = JSONEncoder()
-        request.httpBody = try encoder.encode(requestBody)
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -95,39 +100,64 @@ final class MiniMaxService: AIServiceProtocol {
         logger.logAPIResponse(statusCode: httpResponse.statusCode, body: rawString)
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            throw AIServiceError.parsingError("API Error (\(httpResponse.statusCode)): \(rawString)")
+            throw AIServiceError.parsingError("Qwen API Error (\(httpResponse.statusCode)): \(rawString)")
         }
 
-        let miniMaxResponse: MiniMaxResponse
+        // Parse Qwen response (OpenAI-compatible format)
+        struct QwenResponse: Decodable {
+            let choices: [Choice]?
+            let error: QwenError?
+
+            struct Choice: Decodable {
+                let message: Message
+                struct Message: Decodable {
+                    let content: String
+                }
+            }
+
+            struct QwenError: Decodable {
+                let message: String?
+                let code: String?
+            }
+        }
+
+        let qwenResponse: QwenResponse
         do {
-            miniMaxResponse = try JSONDecoder().decode(MiniMaxResponse.self, from: data)
+            qwenResponse = try JSONDecoder().decode(QwenResponse.self, from: data)
         } catch {
-            print("MiniMaxResponse decode error: \(error)")
-            throw AIServiceError.parsingError("API响应格式错误: \(rawString.prefix(300))")
+            logger.logError(error, context: "Qwen response decode")
+            throw AIServiceError.parsingError("Qwen响应格式错误: \(rawString.prefix(300))")
         }
 
         // Check for API error
-        if let error = miniMaxResponse.error {
-            throw AIServiceError.parsingError("API错误: \(error.message ?? error.code ?? "未知错误")")
+        if let error = qwenResponse.error {
+            throw AIServiceError.parsingError("Qwen错误: \(error.message ?? error.code ?? "未知错误")")
         }
 
-        guard let content = miniMaxResponse.firstContent else {
-            throw AIServiceError.parsingError("API返回为空: \(rawString.prefix(300))")
+        guard let content = qwenResponse.choices?.first?.message.content else {
+            throw AIServiceError.parsingError("Qwen返回为空: \(rawString.prefix(300))")
         }
 
         let jsonString = extractJSON(from: content)
+        logger.log("Image parsing extracted JSON: \(jsonString)")
 
         guard let contentData = jsonString.data(using: .utf8) else {
             throw AIServiceError.parsingError("Failed to convert content to data")
         }
 
+        // Try to decode as array first
         do {
-            let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
-            return nutritionInfo
+            let nutritionArray = try JSONDecoder().decode([NutritionInfo].self, from: contentData)
+            return nutritionArray
         } catch {
-            print("JSON Decode Error: \(error)")
-            print("Raw JSON: \(jsonString)")
-            throw AIServiceError.parsingError("解析失败: \(error.localizedDescription)\n原始数据: \(jsonString.prefix(200))")
+            // Fallback: try single object and wrap in array
+            do {
+                let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: contentData)
+                return [nutritionInfo]
+            } catch {
+                logger.logError(error, context: "Image nutrition decode. JSON: \(jsonString)")
+                throw AIServiceError.parsingError("图片解析失败: \(jsonString.prefix(200))")
+            }
         }
     }
 

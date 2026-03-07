@@ -229,6 +229,33 @@ struct AIAdvisorView: View {
         }
     }
 
+    private var currentTimeContext: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "yyyy年M月d日 EEEE HH:mm"
+        let timeString = formatter.string(from: Date())
+
+        let hour = Calendar.current.component(.hour, from: Date())
+        let period: String
+        if hour < 6 {
+            period = "凌晨"
+        } else if hour < 9 {
+            period = "早晨"
+        } else if hour < 11 {
+            period = "上午"
+        } else if hour < 13 {
+            period = "中午"
+        } else if hour < 17 {
+            period = "下午"
+        } else if hour < 19 {
+            period = "傍晚"
+        } else {
+            period = "晚上"
+        }
+
+        return "当前时间：\(timeString)（\(period)）"
+    }
+
     private func askAI(question: String) async throws -> String {
         guard let apiKey = APIKeyManager.miniMaxAPIKey else {
             throw AIServiceError.apiKeyNotConfigured
@@ -236,6 +263,10 @@ struct AIAdvisorView: View {
 
         let systemPrompt = """
 你是一个专业的营养顾问和健身教练AI。用户会向你咨询关于减重、饮食和健康目标的问题。
+
+【当前时间信息】
+\(currentTimeContext)
+注意：评估用户今日饮食时，要考虑现在是一天中的什么时段。如果是早上或上午，用户今天摄入较少是正常的，不要因此判断他今天吃得太少。
 
 以下是用户的完整数据：
 
@@ -245,6 +276,7 @@ struct AIAdvisorView: View {
 - 如果用户问多久能达到目标，请根据当前热量缺口和目标体重差距计算（每减1kg约需消耗7700kcal）
 - 回答要简洁友好，使用中文
 - 如果数据不足，请指出需要哪些信息
+- 分析饮食时要考虑时间因素，早上摄入少不代表一天吃得少
 
 格式要求（重要）：
 - 不要使用表格

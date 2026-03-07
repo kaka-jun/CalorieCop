@@ -240,26 +240,26 @@ struct FoodInputView: View {
         errorMessage = nil
 
         do {
+            let nutritionList: [NutritionInfo]
+
             if let image = selectedImage {
-                // Image parsing still returns single item
-                let nutrition = try await aiService.parseFoodImage(image, additionalContext: inputText.isEmpty ? nil : inputText, preferences: foodPreferences)
-                parsedNutrition = nutrition
-                showConfirmation = true
+                // Image parsing now supports multiple items via Qwen VL Plus
+                nutritionList = try await aiService.parseFoodImageMultiple(image, additionalContext: inputText.isEmpty ? nil : inputText, preferences: foodPreferences)
             } else {
                 // Text parsing supports multiple items
-                let nutritionList = try await aiService.parseFoodInputMultiple(inputText, preferences: foodPreferences)
+                nutritionList = try await aiService.parseFoodInputMultiple(inputText, preferences: foodPreferences)
+            }
 
-                if nutritionList.count == 1 {
-                    // Single item - show normal confirmation
-                    parsedNutrition = nutritionList.first
-                    showConfirmation = true
-                } else if nutritionList.count > 1 {
-                    // Multiple items - show multiple confirmation
-                    parsedNutritionList = nutritionList
-                    showMultipleConfirmation = true
-                } else {
-                    errorMessage = "未能识别任何食物"
-                }
+            if nutritionList.count == 1 {
+                // Single item - show normal confirmation
+                parsedNutrition = nutritionList.first
+                showConfirmation = true
+            } else if nutritionList.count > 1 {
+                // Multiple items - show multiple confirmation
+                parsedNutritionList = nutritionList
+                showMultipleConfirmation = true
+            } else {
+                errorMessage = "未能识别任何食物"
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -308,21 +308,23 @@ struct FoodInputView: View {
 struct MultipleFoodConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
 
-    let nutritionList: [NutritionInfo]
     let onConfirm: ([NutritionInfo]) -> Void
 
+    @State private var editableList: [NutritionInfo]
     @State private var selectedItems: Set<Int>
+    @State private var editingIndex: Int?
+    @State private var showingEditSheet = false
 
     init(nutritionList: [NutritionInfo], onConfirm: @escaping ([NutritionInfo]) -> Void) {
-        self.nutritionList = nutritionList
         self.onConfirm = onConfirm
-        // Default: all items selected
+        self._editableList = State(initialValue: nutritionList)
         self._selectedItems = State(initialValue: Set(0..<nutritionList.count))
     }
 
     private var totalCalories: Double {
         selectedItems.reduce(0) { sum, index in
-            sum + nutritionList[index].calories
+            guard index < editableList.count else { return sum }
+            return sum + editableList[index].calories
         }
     }
 
@@ -331,11 +333,14 @@ struct MultipleFoodConfirmationView: View {
             VStack(spacing: 0) {
                 // Summary header
                 VStack(spacing: 8) {
-                    Text("识别到 \(nutritionList.count) 种食物")
+                    Text("识别到 \(editableList.count) 种食物")
                         .font(.headline)
                     Text("总热量: \(Int(totalCalories)) kcal")
                         .font(.subheadline)
                         .foregroundStyle(.orange)
+                    Text("点击编辑按钮可修改")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -343,7 +348,7 @@ struct MultipleFoodConfirmationView: View {
 
                 // Food list
                 List {
-                    ForEach(Array(nutritionList.enumerated()), id: \.offset) { index, nutrition in
+                    ForEach(Array(editableList.enumerated()), id: \.offset) { index, nutrition in
                         MultipleFoodRow(
                             nutrition: nutrition,
                             isSelected: selectedItems.contains(index),
@@ -353,6 +358,10 @@ struct MultipleFoodConfirmationView: View {
                                 } else {
                                     selectedItems.insert(index)
                                 }
+                            },
+                            onEdit: {
+                                editingIndex = index
+                                showingEditSheet = true
                             }
                         )
                     }
@@ -369,12 +378,24 @@ struct MultipleFoodConfirmationView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("确认 (\(selectedItems.count))") {
-                        let confirmed = selectedItems.sorted().map { nutritionList[$0] }
+                        let confirmed = selectedItems.sorted().compactMap { index in
+                            index < editableList.count ? editableList[index] : nil
+                        }
                         onConfirm(confirmed)
                         dismiss()
                     }
                     .disabled(selectedItems.isEmpty)
                     .fontWeight(.semibold)
+                }
+            }
+            .sheet(isPresented: $showingEditSheet) {
+                if let index = editingIndex, index < editableList.count {
+                    SingleFoodEditView(
+                        nutrition: editableList[index],
+                        onSave: { updatedNutrition in
+                            editableList[index] = updatedNutrition
+                        }
+                    )
                 }
             }
         }
@@ -385,13 +406,19 @@ struct MultipleFoodRow: View {
     let nutrition: NutritionInfo
     let isSelected: Bool
     let onToggle: () -> Void
+    let onEdit: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
             // Checkbox
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isSelected ? .blue : .gray)
-                .font(.title2)
+            Button {
+                onToggle()
+            } label: {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .blue : .gray)
+                    .font(.title2)
+            }
+            .buttonStyle(.plain)
 
             // Food info
             VStack(alignment: .leading, spacing: 4) {
@@ -417,12 +444,132 @@ struct MultipleFoodRow: View {
             }
 
             Spacer()
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onToggle()
+
+            // Edit button
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil.circle")
+                    .font(.title2)
+                    .foregroundStyle(.blue)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Single Food Edit View
+
+struct SingleFoodEditView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let nutrition: NutritionInfo
+    let onSave: (NutritionInfo) -> Void
+
+    @State private var foodName: String = ""
+    @State private var grams: String = ""
+    @State private var calories: String = ""
+    @State private var protein: String = ""
+    @State private var carbohydrates: String = ""
+    @State private var fat: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("食物信息") {
+                    TextField("食物名称", text: $foodName)
+                    HStack {
+                        Text("克重")
+                        Spacer()
+                        TextField("0", text: $grams)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("营养成分") {
+                    HStack {
+                        Text("热量")
+                        Spacer()
+                        TextField("0", text: $calories)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("kcal")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("蛋白质")
+                        Spacer()
+                        TextField("0", text: $protein)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("碳水化合物")
+                        Spacer()
+                        TextField("0", text: $carbohydrates)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("脂肪")
+                        Spacer()
+                        TextField("0", text: $fat)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("编辑食物")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        let updated = NutritionInfo(
+                            foodName: foodName,
+                            grams: Double(grams) ?? nutrition.grams,
+                            calories: Double(calories) ?? nutrition.calories,
+                            protein: Double(protein) ?? nutrition.protein,
+                            carbohydrates: Double(carbohydrates) ?? nutrition.carbohydrates,
+                            fat: Double(fat) ?? nutrition.fat,
+                            confidence: "manual",
+                            notes: "用户手动调整",
+                            daysAgo: nutrition.daysAgo
+                        )
+                        onSave(updated)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear {
+                foodName = nutrition.foodName
+                grams = String(format: "%.1f", nutrition.grams)
+                calories = String(format: "%.0f", nutrition.calories)
+                protein = String(format: "%.1f", nutrition.protein)
+                carbohydrates = String(format: "%.1f", nutrition.carbohydrates)
+                fat = String(format: "%.1f", nutrition.fat)
+            }
+        }
     }
 }
 
