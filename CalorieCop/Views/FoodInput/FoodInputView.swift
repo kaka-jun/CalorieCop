@@ -256,6 +256,9 @@ struct FoodInputView: View {
                 Text("已保存的食物习惯")
                     .font(.headline)
                 Spacer()
+                Text("\(foodPreferences.count)项")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Button {
                     showingPreferencesList = true
                 } label: {
@@ -264,25 +267,28 @@ struct FoodInputView: View {
                 }
             }
 
-            // Quick access to recent preferences (top 6)
-            let recentPrefs = Array(foodPreferences.prefix(6))
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
+            // Vertical list of recent preferences (top 5)
+            let recentPrefs = Array(foodPreferences.prefix(5))
+            VStack(spacing: 0) {
                 ForEach(recentPrefs, id: \.id) { pref in
-                    PreferenceChip(
+                    PreferenceRowCompact(
                         preference: pref,
                         onTap: { addPreferenceAsFood(pref) },
-                        onLongPress: { editingPreference = pref }
+                        onEdit: { editingPreference = pref }
                     )
+
+                    if pref.id != recentPrefs.last?.id {
+                        Divider()
+                    }
                 }
             }
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            Text("点击快速添加，长按编辑")
+            Text("点击添加，右侧按钮编辑")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func addPreferenceAsFood(_ preference: FoodPreference) {
@@ -703,46 +709,66 @@ struct CameraView: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - Preference Chip
+// MARK: - Preference Row Compact (for main input view)
 
-struct PreferenceChip: View {
+struct PreferenceRowCompact: View {
     let preference: FoodPreference
     let onTap: () -> Void
-    let onLongPress: () -> Void
+    let onEdit: () -> Void
 
     var body: some View {
-        Button {
-            onTap()
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(preference.keyword)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
+        HStack {
+            // Tap to add
+            Button {
+                onTap()
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(preference.keyword)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
 
-                if let calories = preference.defaultCalories {
-                    Text("\(Int(calories)) kcal")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        if let grams = preference.defaultGrams {
+                            HStack(spacing: 6) {
+                                Text("\(Int(grams))g")
+                                if let protein = preference.defaultProtein {
+                                    Text("蛋白\(String(format: "%.0f", protein))g")
+                                }
+                                if let carbs = preference.defaultCarbs {
+                                    Text("碳水\(String(format: "%.0f", carbs))g")
+                                }
+                                if let fat = preference.defaultFat {
+                                    Text("脂肪\(String(format: "%.0f", fat))g")
+                                }
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    Spacer()
+
+                    if let calories = preference.defaultCalories {
+                        Text("\(Int(calories)) kcal")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(.systemGray4), lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+
+            // Edit button
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil.circle")
+                    .font(.title3)
+                    .foregroundStyle(.blue)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .onEnded { _ in
-                    onLongPress()
-                }
-        )
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 }
 
@@ -771,40 +797,67 @@ struct FoodPreferencesListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            VStack(spacing: 0) {
+                // Always visible search bar at top
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("搜索食物习惯", text: $searchText)
+                        .textFieldStyle(.plain)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+                // Food list
                 if filteredPreferences.isEmpty {
+                    Spacer()
                     ContentUnavailableView(
                         searchText.isEmpty ? "暂无保存的习惯" : "未找到匹配的食物",
                         systemImage: searchText.isEmpty ? "heart.slash" : "magnifyingglass",
                         description: Text(searchText.isEmpty ? "确认食物时选择\"记住这个习惯\"来保存" : "尝试其他关键词")
                     )
+                    Spacer()
                 } else {
-                    ForEach(filteredPreferences, id: \.id) { preference in
-                        PreferenceRow(preference: preference)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                onSelect(preference)
-                                dismiss()
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    preferenceToDelete = preference
-                                    showingDeleteConfirmation = true
-                                } label: {
-                                    Label("删除", systemImage: "trash")
+                    List {
+                        ForEach(filteredPreferences, id: \.id) { preference in
+                            PreferenceRowFull(preference: preference)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    onSelect(preference)
+                                    dismiss()
                                 }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        preferenceToDelete = preference
+                                        showingDeleteConfirmation = true
+                                    } label: {
+                                        Label("删除", systemImage: "trash")
+                                    }
 
-                                Button {
-                                    editingPreference = preference
-                                } label: {
-                                    Label("编辑", systemImage: "pencil")
+                                    Button {
+                                        editingPreference = preference
+                                    } label: {
+                                        Label("编辑", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
                                 }
-                                .tint(.blue)
-                            }
+                        }
                     }
+                    .listStyle(.plain)
                 }
             }
-            .searchable(text: $searchText, prompt: "搜索食物习惯")
             .navigationTitle("食物习惯")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -832,7 +885,7 @@ struct FoodPreferencesListView: View {
     }
 }
 
-struct PreferenceRow: View {
+struct PreferenceRowFull: View {
     let preference: FoodPreference
 
     var body: some View {
