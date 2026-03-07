@@ -20,6 +20,11 @@ struct FoodInputView: View {
     @State private var showingCamera = false
     @State private var showingCameraAlert = false
 
+    // Food preferences
+    @State private var preferenceSearchText = ""
+    @State private var showingPreferencesList = false
+    @State private var editingPreference: FoodPreference?
+
     private let aiService = MiniMaxService()
 
     private var isCameraAvailable: Bool {
@@ -50,6 +55,11 @@ struct FoodInputView: View {
                     }
 
                     parseButton
+
+                    // Food preferences section
+                    if !foodPreferences.isEmpty {
+                        savedPreferencesSection
+                    }
                 }
                 .padding()
             }
@@ -79,6 +89,16 @@ struct FoodInputView: View {
                 Button("好的", role: .cancel) {}
             } message: {
                 Text("请在真机上使用相机功能，或从相册选择图片。")
+            }
+            .sheet(isPresented: $showingPreferencesList) {
+                FoodPreferencesListView(
+                    onSelect: { preference in
+                        addPreferenceAsFood(preference)
+                    }
+                )
+            }
+            .sheet(item: $editingPreference) { preference in
+                EditPreferenceView(preference: preference)
             }
             .onChange(of: selectedPhoto) {
                 Task {
@@ -230,6 +250,73 @@ struct FoodInputView: View {
         !inputText.isEmpty || selectedImage != nil
     }
 
+    private var savedPreferencesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("已保存的食物习惯")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    showingPreferencesList = true
+                } label: {
+                    Text("全部")
+                        .font(.subheadline)
+                }
+            }
+
+            // Quick access to recent preferences (top 6)
+            let recentPrefs = Array(foodPreferences.prefix(6))
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
+                ForEach(recentPrefs, id: \.id) { pref in
+                    PreferenceChip(
+                        preference: pref,
+                        onTap: { addPreferenceAsFood(pref) },
+                        onLongPress: { editingPreference = pref }
+                    )
+                }
+            }
+
+            Text("点击快速添加，长按编辑")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func addPreferenceAsFood(_ preference: FoodPreference) {
+        // If we have complete nutrition data, add directly
+        if let grams = preference.defaultGrams,
+           let calories = preference.defaultCalories,
+           let protein = preference.defaultProtein,
+           let carbs = preference.defaultCarbs,
+           let fat = preference.defaultFat {
+            let nutrition = NutritionInfo(
+                foodName: preference.keyword,
+                grams: grams,
+                calories: calories,
+                protein: protein,
+                carbohydrates: carbs,
+                fat: fat,
+                confidence: "saved",
+                notes: "从已保存习惯添加",
+                daysAgo: 0
+            )
+
+            // Update usage count
+            preference.usageCount += 1
+            try? modelContext.save()
+
+            // Show confirmation for review
+            parsedNutrition = nutrition
+            showConfirmation = true
+        } else {
+            // No complete data, use as input text
+            inputText = preference.keyword
+        }
+    }
+
     private func parseFood() async {
         // Dismiss keyboard first
         _ = await MainActor.run {
@@ -305,6 +392,12 @@ struct FoodInputView: View {
 
 // MARK: - Multiple Food Confirmation View
 
+// Wrapper to make index identifiable for sheet(item:)
+struct EditingItem: Identifiable {
+    let id: Int
+    let nutrition: NutritionInfo
+}
+
 struct MultipleFoodConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -312,8 +405,7 @@ struct MultipleFoodConfirmationView: View {
 
     @State private var editableList: [NutritionInfo]
     @State private var selectedItems: Set<Int>
-    @State private var editingIndex: Int?
-    @State private var showingEditSheet = false
+    @State private var editingItem: EditingItem?
 
     init(nutritionList: [NutritionInfo], onConfirm: @escaping ([NutritionInfo]) -> Void) {
         self.onConfirm = onConfirm
@@ -360,8 +452,7 @@ struct MultipleFoodConfirmationView: View {
                                 }
                             },
                             onEdit: {
-                                editingIndex = index
-                                showingEditSheet = true
+                                editingItem = EditingItem(id: index, nutrition: nutrition)
                             }
                         )
                     }
@@ -388,15 +479,15 @@ struct MultipleFoodConfirmationView: View {
                     .fontWeight(.semibold)
                 }
             }
-            .sheet(isPresented: $showingEditSheet) {
-                if let index = editingIndex, index < editableList.count {
-                    SingleFoodEditView(
-                        nutrition: editableList[index],
-                        onSave: { updatedNutrition in
-                            editableList[index] = updatedNutrition
+            .sheet(item: $editingItem) { item in
+                SingleFoodEditView(
+                    nutrition: item.nutrition,
+                    onSave: { updatedNutrition in
+                        if item.id < editableList.count {
+                            editableList[item.id] = updatedNutrition
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }
@@ -612,7 +703,296 @@ struct CameraView: UIViewControllerRepresentable {
     }
 }
 
+// MARK: - Preference Chip
+
+struct PreferenceChip: View {
+    let preference: FoodPreference
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    var body: some View {
+        Button {
+            onTap()
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(preference.keyword)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+
+                if let calories = preference.defaultCalories {
+                    Text("\(Int(calories)) kcal")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(.systemGray4), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    onLongPress()
+                }
+        )
+    }
+}
+
+// MARK: - Food Preferences List View
+
+struct FoodPreferencesListView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \FoodPreference.usageCount, order: .reverse) private var foodPreferences: [FoodPreference]
+
+    @State private var searchText = ""
+    @State private var editingPreference: FoodPreference?
+    @State private var showingDeleteConfirmation = false
+    @State private var preferenceToDelete: FoodPreference?
+
+    let onSelect: (FoodPreference) -> Void
+
+    private var filteredPreferences: [FoodPreference] {
+        if searchText.isEmpty {
+            return foodPreferences
+        }
+        return foodPreferences.filter { pref in
+            pref.keyword.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if filteredPreferences.isEmpty {
+                    ContentUnavailableView(
+                        searchText.isEmpty ? "暂无保存的习惯" : "未找到匹配的食物",
+                        systemImage: searchText.isEmpty ? "heart.slash" : "magnifyingglass",
+                        description: Text(searchText.isEmpty ? "确认食物时选择\"记住这个习惯\"来保存" : "尝试其他关键词")
+                    )
+                } else {
+                    ForEach(filteredPreferences, id: \.id) { preference in
+                        PreferenceRow(preference: preference)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                onSelect(preference)
+                                dismiss()
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    preferenceToDelete = preference
+                                    showingDeleteConfirmation = true
+                                } label: {
+                                    Label("删除", systemImage: "trash")
+                                }
+
+                                Button {
+                                    editingPreference = preference
+                                } label: {
+                                    Label("编辑", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "搜索食物习惯")
+            .navigationTitle("食物习惯")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                }
+            }
+            .sheet(item: $editingPreference) { preference in
+                EditPreferenceView(preference: preference)
+            }
+            .alert("删除习惯", isPresented: $showingDeleteConfirmation) {
+                Button("取消", role: .cancel) {}
+                Button("删除", role: .destructive) {
+                    if let pref = preferenceToDelete {
+                        modelContext.delete(pref)
+                        try? modelContext.save()
+                    }
+                }
+            } message: {
+                Text("确定要删除这个食物习惯吗？")
+            }
+        }
+    }
+}
+
+struct PreferenceRow: View {
+    let preference: FoodPreference
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(preference.keyword)
+                    .font(.headline)
+                Spacer()
+                if let calories = preference.defaultCalories {
+                    Text("\(Int(calories)) kcal")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            if let grams = preference.defaultGrams {
+                HStack(spacing: 8) {
+                    Text("\(Int(grams))g")
+                    if let protein = preference.defaultProtein {
+                        Text("蛋白\(String(format: "%.1f", protein))g")
+                    }
+                    if let carbs = preference.defaultCarbs {
+                        Text("碳水\(String(format: "%.1f", carbs))g")
+                    }
+                    if let fat = preference.defaultFat {
+                        Text("脂肪\(String(format: "%.1f", fat))g")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Text("使用 \(preference.usageCount) 次")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Edit Preference View
+
+struct EditPreferenceView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    let preference: FoodPreference
+
+    @State private var keyword: String = ""
+    @State private var grams: String = ""
+    @State private var calories: String = ""
+    @State private var protein: String = ""
+    @State private var carbs: String = ""
+    @State private var fat: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("食物名称") {
+                    TextField("名称", text: $keyword)
+                }
+
+                Section("营养信息") {
+                    HStack {
+                        Text("克重")
+                        Spacer()
+                        TextField("0", text: $grams)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("热量")
+                        Spacer()
+                        TextField("0", text: $calories)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("kcal")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("蛋白质")
+                        Spacer()
+                        TextField("0", text: $protein)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("碳水化合物")
+                        Spacer()
+                        TextField("0", text: $carbs)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("脂肪")
+                        Spacer()
+                        TextField("0", text: $fat)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("g")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("编辑习惯")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        saveChanges()
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear {
+                keyword = preference.keyword
+                grams = preference.defaultGrams.map { String(format: "%.1f", $0) } ?? ""
+                calories = preference.defaultCalories.map { String(format: "%.0f", $0) } ?? ""
+                protein = preference.defaultProtein.map { String(format: "%.1f", $0) } ?? ""
+                carbs = preference.defaultCarbs.map { String(format: "%.1f", $0) } ?? ""
+                fat = preference.defaultFat.map { String(format: "%.1f", $0) } ?? ""
+            }
+        }
+    }
+
+    private func saveChanges() {
+        preference.keyword = keyword
+        preference.defaultGrams = Double(grams)
+        preference.defaultCalories = Double(calories)
+        preference.defaultProtein = Double(protein)
+        preference.defaultCarbs = Double(carbs)
+        preference.defaultFat = Double(fat)
+
+        // Update description
+        if let g = preference.defaultGrams, let c = preference.defaultCalories {
+            preference.defaultDescription = "\(Int(g))g, \(Int(c))kcal"
+        }
+
+        try? modelContext.save()
+    }
+}
+
 #Preview {
     FoodInputView()
-        .modelContainer(for: FoodEntry.self, inMemory: true)
+        .modelContainer(for: [FoodEntry.self, FoodPreference.self], inMemory: true)
 }
